@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EarthSynth — hearing a changing planet</title>
+<meta name="description" content="An Earth Jukebox: NASA Earth Information Center visual frames sonified through their own published colour bars, with the measurement recoverable from the audio to a stated tolerance.">
+<!--
+  Every control is a native element: <button>, <input type="range">. Nothing is
+  a styled <div> with a click handler.
+
+  A range input arrives with arrow-key stepping, Home and End, a focus ring, a
+  value announced by the screen reader, and correct behaviour under
+  high-contrast and forced-colors modes. A custom widget has none of that unless
+  somebody builds, tests and maintains it.
+
+  Both canvases are aria-hidden. They are pictures of numbers that are also
+  printed in the readout, spoken by the live region, and sounded. Region
+  selection is by tab and sweep position by a range input, so a keyboard or
+  screen-reader user never needs to reach either canvas.
+-->
+<style>
+  :root {
+    color-scheme: dark;
+    --plane: #0b111b;
+    --surface: #131b29;
+    --surface-2: #192436;
+    --primary: #e8edf5;
+    --secondary: #9fb0c7;
+    --muted: #6d7f96;
+    --grid: #1e293a;
+    --accent: #4fd1c5;
+    --accent-dim: #1d4a52;
+    --ring: rgba(255,255,255,0.09);
+    --font: system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 18px 20px 24px;
+    background: var(--plane); color: var(--primary);
+    font: 14px/1.5 var(--font);
+  }
+  h1, h2, h3 { margin: 0; font-weight: 600; }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip-path: inset(50%); white-space: nowrap;
+  }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ---- header ---- */
+  header { display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+           padding-bottom: 16px; border-bottom: 1px solid var(--grid); margin-bottom: 16px; }
+  .mark { width: 38px; height: 38px; border-radius: 50%; flex: none;
+          border: 1px solid var(--accent); display: grid; place-items: center;
+          background: rgba(79,209,197,0.08); }
+  .brand h1 { font-size: 19px; letter-spacing: -0.015em; line-height: 1.15; }
+  .brand p { margin: 1px 0 0; color: var(--secondary); font-size: 12.5px; }
+  .spacer { flex: 1 1 auto; }
+  .chip { font: 12px/1 var(--mono); color: var(--secondary); background: var(--surface);
+          border: 1px solid var(--ring); border-radius: 999px; padding: 10px 15px; white-space: nowrap; }
+
+  button { font: inherit; color: var(--primary); background: var(--surface);
+           border: 1px solid var(--ring); border-radius: 9px; padding: 10px 15px; cursor: pointer; }
+  button:hover { background: var(--surface-2); }
+  button[aria-pressed="true"], button[aria-selected="true"] {
+    background: var(--accent-dim); border-color: var(--accent); color: #d8fbf7; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* ---- layout ---- */
+  .layout { display: grid; grid-template-columns: minmax(0,1fr) 352px; gap: 16px; align-items: start; }
+  @media (max-width: 980px) { .layout { grid-template-columns: minmax(0,1fr); } }
+  .panel { background: var(--surface); border: 1px solid var(--ring); border-radius: 12px; padding: 16px 18px; }
+  .panel + .panel { margin-top: 16px; }
+  .ptitle { display: flex; align-items: center; gap: 8px; font-size: 15.5px; }
+  .ptitle svg { flex: none; color: var(--accent); }
+  .sub { color: var(--muted); font-size: 12px; margin: 4px 0 14px; }
+
+  [role="tablist"] { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+  [role="tab"] { padding: 8px 16px; font-size: 13.5px; }
+
+  /* ---- the catalogue ---- */
+  #tracks { gap: 9px; margin-bottom: 14px; }
+  #tracks [role="tab"] { display: flex; flex-direction: column; align-items: flex-start;
+                         gap: 3px; padding: 9px 15px; line-height: 1.2; }
+  #tracks small { font: 10px/1 var(--mono); letter-spacing: 0.04em; text-transform: uppercase; }
+  #tracks small.verifiable { color: #6ee7c8; }
+  #tracks small.unanchored { color: #c6a15e; }
+  .badge { font: 10.5px/1 var(--mono); letter-spacing: 0.05em; text-transform: uppercase;
+           border-radius: 999px; padding: 5px 10px; border: 1px solid currentColor; }
+  .badge[data-tier="verifiable"] { color: #6ee7c8; }
+  .badge[data-tier="unanchored"] { color: #c6a15e; }
+  .trackhead { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .blurb { color: var(--secondary); margin: 8px 0 0; max-width: 78ch; }
+  .tiernote { color: var(--muted); font-size: 12px; margin: 6px 0 0; max-width: 78ch; }
+  #inversion { color: var(--muted); font-size: 11.5px; margin: 6px 0 0; max-width: 78ch; }
+
+  /* ---- the EIC frame ---- */
+  .framebox { position: relative; margin-top: 12px; border-radius: 10px; overflow: hidden;
+              border: 1px solid var(--ring); background: #05080d; line-height: 0; }
+  #frameImg { width: 100%; height: auto; display: block; }
+  #frameMask { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  #scanLine { position: absolute; left: 0; right: 0; height: 0;
+              border-top: 2px solid rgba(255,255,255,0.85);
+              box-shadow: 0 0 10px 2px rgba(79,209,197,0.55); pointer-events: none; }
+  #frameMissing { color: var(--secondary); font-size: 12.5px; line-height: 1.5;
+                  padding: 14px 16px; }
+  .framectl { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
+  .framectl button { padding: 8px 14px; font-size: 13px; }
+  #maskCount { color: var(--muted); font: 12px var(--mono); }
+  .framefoot { display: flex; gap: 10px; flex-wrap: wrap; align-items: baseline;
+               color: var(--muted); font-size: 11.5px; margin-top: 8px; }
+  .framefoot .right { margin-left: auto; }
+  #transportNote { color: var(--secondary); font-size: 12.5px; margin: 12px 0 0;
+                   padding: 12px 14px; border: 1px dashed var(--ring); border-radius: 10px; }
+
+  /* ---- globe ---- */
+  .stage { display: flex; align-items: center; justify-content: center; gap: 10px; }
+  #globe { flex: 1 1 auto; max-width: 620px; aspect-ratio: 1 / 1; touch-action: none; cursor: grab; }
+  #globe:active { cursor: grabbing; }
+  .barwrap { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: none; }
+  .barwrap span { color: var(--muted); font-size: 10.5px; text-align: center; line-height: 1.25; }
+  #colourbar { width: 54px; height: 260px; }
+
+  .transport { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+  .round { width: 44px; height: 44px; border-radius: 50%; padding: 0; display: grid; place-items: center; }
+  #play { width: 52px; height: 52px; border-color: var(--accent); color: var(--accent); }
+  .seg { display: flex; border: 1px solid var(--ring); border-radius: 9px; overflow: hidden; }
+  .seg button { border: 0; border-radius: 0; }
+  .seg button + button { border-left: 1px solid var(--ring); }
+  #scrub { width: 100%; margin-top: 12px; accent-color: var(--accent); }
+
+  /* ---- the audible scale, and the key selector ---- */
+  .scalerow, .chordrow {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--grid); }
+  #chords { display: flex; gap: 6px; flex-wrap: wrap; }
+  #chords button { padding: 7px 12px; font-size: 12.5px; }
+  .chordlabel { color: var(--muted); font: 11px var(--mono);
+                text-transform: uppercase; letter-spacing: 0.06em; }
+  .chordnote { color: var(--muted); font-size: 11.5px; flex: 1 1 100%; margin: 0; max-width: 78ch; }
+  #scaleNow { font: 19px/1 var(--mono); color: #5eead4; font-variant-numeric: tabular-nums;
+              min-width: 7ch; }
+
+  /* ---- readout ---- */
+  .hero { display: flex; align-items: baseline; gap: 8px; margin: 6px 0 4px; }
+  .hero b { font-size: 40px; font-weight: 600; letter-spacing: -0.025em; font-variant-numeric: tabular-nums; }
+  .hero .unit { color: var(--secondary); font-size: 13px; }
+  .hero .year { margin-left: auto; color: var(--muted); font: 13px var(--mono); }
+  .hzrow { display: flex; align-items: baseline; gap: 7px; margin-top: 10px; }
+  .hzrow b { color: #5eead4; font: 21px/1 var(--mono); }
+  .hzrow .unit { color: var(--muted); font-size: 11.5px; }
+  .hzrow .cents { margin-left: auto; color: var(--muted); font: 12px var(--mono); }
+  .statusrow { display: flex; align-items: center; gap: 8px; margin-top: 14px;
+               padding-top: 12px; border-top: 1px solid var(--grid);
+               color: var(--secondary); font-size: 12.5px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #0ca30c; flex: none; }
+  .statusrow .right { margin-left: auto; color: var(--muted); font: 12px var(--mono); }
+
+  dl.rows { display: grid; grid-template-columns: auto 1fr; gap: 9px 14px; margin: 0; }
+  dl.rows dt { color: var(--muted); font: 12px var(--mono); }
+  dl.rows dd { margin: 0; font: 13px var(--mono); text-align: right; font-variant-numeric: tabular-nums; }
+  .note { color: var(--muted); font-size: 11.5px; margin-top: 12px; line-height: 1.5; }
+
+  /* ---- the residual, as the headline ---- */
+  .residualhero { display: flex; align-items: baseline; gap: 8px;
+                  margin: 10px 0 14px; padding-bottom: 12px;
+                  border-bottom: 1px solid var(--grid); }
+  .residualhero b { font-size: 36px; font-weight: 600; letter-spacing: -0.025em;
+                    font-variant-numeric: tabular-nums; }
+  .residualhero .unit { color: var(--secondary); font-size: 13px; }
+  .residualhero .caption { margin-left: auto; color: var(--muted); font: 11px var(--mono);
+                           text-transform: uppercase; letter-spacing: 0.06em; }
+  [data-ro="vResidual"][data-ok="true"]  { color: #4ade80; }
+  [data-ro="vResidual"][data-ok="false"] { color: #fca5a5; }
+  /* The colour alone would be red-green, which is the one pair a large share of
+     people cannot separate. The glyph carries the same state without it. */
+  [data-ro="vResidual"][data-ok="true"]::after  { content: " ✓"; }
+  [data-ro="vResidual"][data-ok="false"]::after { content: " ✗"; }
+
+  .faultrow { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--grid); }
+  .faultrow button { padding: 8px 14px; font-size: 13px; }
+  .masterrow { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--grid); }
+  .masterrow label { display: block; color: var(--primary); font-size: 12.5px; margin-bottom: 6px; }
+  #master { width: 100%; accent-color: var(--accent); }
+
+  .trendhead { display: flex; align-items: center; gap: 10px; }
+  .yearchip { margin-left: auto; font: 12px var(--mono); color: #d8fbf7;
+              background: var(--accent-dim); border: 1px solid var(--accent);
+              border-radius: 6px; padding: 3px 9px; }
+  #trend { width: 100%; height: 180px; display: block; }
+
+  .legend p { color: var(--secondary); margin: 0 0 10px; max-width: 76ch; }
+  .legend ul { color: var(--secondary); margin: 0; padding-left: 20px; }
+  .legend li { margin-bottom: 4px; }
+  kbd { font: 11px var(--mono); background: var(--surface-2); color: var(--primary);
+        border: 1px solid var(--ring); border-radius: 4px; padding: 1px 5px; }
+  footer { display: flex; gap: 10px; flex-wrap: wrap; color: var(--muted); font-size: 11.5px;
+           margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--grid); }
+  footer .right { margin-left: auto; }
+  a { color: var(--accent); }
+  #error { background: #3b1418; border: 1px solid #d03b3b; color: #ffd9d9;
+           border-radius: 12px; padding: 14px; margin-bottom: 16px; }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="mark" aria-hidden="true">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h3l3-8 4 16 3-8h7"/></svg>
+  </span>
+  <div class="brand">
+    <h1>EarthSynth</h1>
+    <p>Hear a changing planet.</p>
+  </div>
+  <div class="spacer"></div>
+  <span class="chip" data-ro="contractShort">220/880 Hz balanced at 0.00 °C</span>
+  <button id="announce" aria-pressed="false" aria-describedby="announceHelp">Speak values</button>
+  <span id="announceHelp" class="sr-only">Announces the step, its measured value and the live residual every few seconds while playing, so the record can be followed without the screen.</span>
+  <button id="reference" aria-pressed="false" aria-describedby="refHelp">Reference tone</button>
+  <span id="refHelp" class="sr-only">Holds both carrier partials at equal level, which is exactly the track's balance point, so the middle of its published bar can be compared by ear.</span>
+  <button id="simplified" aria-pressed="false">Simplified mode</button>
+</header>
+
+<div id="error" hidden role="alert"></div>
+
+<main class="layout">
+  <section class="panel" aria-labelledby="mapTitle">
+    <div role="tablist" aria-label="Visualization" id="tracks"></div>
+
+    <div class="trackhead">
+      <h2 class="ptitle" id="mapTitle">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 14.76V4a2 2 0 1 0-4 0v10.76a4 4 0 1 0 4 0z"/></svg>
+        <span data-ro="trackTitle">Loading…</span>
+      </h2>
+      <span class="badge" id="tierBadge" data-ro="tierBadge" data-tier="verifiable">—</span>
+    </div>
+    <p class="blurb" data-ro="trackBlurb"></p>
+    <p class="tiernote" data-ro="tierNote"></p>
+    <p id="inversion" data-ro="inversion" hidden></p>
+
+    <div class="framebox" id="framePanel" hidden>
+      <img id="frameImg" alt="">
+      <canvas id="frameMask" aria-hidden="true" hidden></canvas>
+      <div id="scanLine" hidden></div>
+      <p id="frameMissing" hidden></p>
+    </div>
+    <div class="framectl">
+      <button id="maskToggle" aria-pressed="false" aria-describedby="maskHelp">Show discarded pixels</button>
+      <span id="maskCount"></span>
+      <span id="maskHelp" class="sr-only">Darkens every cell whose colour did not land close enough to the published colour bar. Those are basemap, coastline, labels and annotation, and none of them is read as a value.</span>
+    </div>
+    <p class="framefoot">
+      <a id="frameSource" href="#">source</a>
+      <span class="right" id="frameCredit"></span>
+    </p>
+
+    <div id="globeWrap" hidden>
+      <p class="sub" style="margin-top:14px"><span data-ro="regionDetail">area-weighted</span></p>
+      <div role="tablist" aria-label="Region" id="regions"></div>
+      <div class="stage">
+        <canvas id="globe" aria-hidden="true"></canvas>
+        <div class="barwrap">
+          <span id="barUnits">Sea surface temperature<br>(°C)</span>
+          <canvas id="colourbar" aria-hidden="true"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="transport">
+      <button id="prev" class="round" aria-label="Previous step">‹</button>
+      <button id="play" class="round" aria-pressed="false" aria-label="Play">▶</button>
+      <button id="next" class="round" aria-label="Next step">›</button>
+      <div class="spacer"></div>
+      <div class="seg" role="group" aria-label="Audio layers">
+        <button id="sciOnly" aria-pressed="true">Scientific only</button>
+        <button id="withMusic" aria-pressed="false">+ Musical</button>
+      </div>
+    </div>
+
+    <label for="scrub" class="sr-only">Position in the record</label>
+    <input type="range" id="scrub" min="0" max="89" step="1" value="0">
+
+    <div class="scalerow" id="scaleRow">
+      <span class="chordlabel" id="scaleLabel">Scale</span>
+      <button id="scaleBtn" aria-pressed="false" aria-describedby="scaleHelp">Hear the scale</button>
+      <span id="scaleNow"></span>
+      <p class="chordnote" id="scaleHelp">
+        Sounds the bottom of this region's range, then its balance point, then the top,
+        naming each one as it plays. A colour bar gives you the scale before you read the
+        picture; without this the tilt has nothing to be judged against by ear. The residual
+        stays live throughout, so the three reference tones are checked by the same
+        measurement as the record.
+      </p>
+    </div>
+
+    <div class="chordrow" id="chordRow">
+      <span class="chordlabel" id="chordLabel">Key</span>
+      <div role="group" aria-labelledby="chordLabel" id="chords"></div>
+      <p class="chordnote">
+        Every chord in every one of these contains an A, so the 220 Hz and 880 Hz
+        carrier stays inside the harmony. Change the key while it plays and watch
+        the residual: no pitch here encodes anything.
+      </p>
+    </div>
+
+    <p id="transportNote" hidden>
+      There is nothing to play here. This visualization publishes no numeric colour
+      scale, so no value can be recovered from it, and a soundscape with a residual
+      beside it would suggest a measurement that does not exist. It is shown and
+      described instead. The tracks marked <strong>measured</strong> above were
+      recovered through a bar NASA published, and those you can check.
+    </p>
+  </section>
+
+  <div>
+    <section class="panel" aria-labelledby="readoutTitle" id="readoutPanel">
+      <h2 class="ptitle" id="readoutTitle">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18M7 16v-5M12 16V8M17 16v-9"/></svg>
+        Live Data Readout
+      </h2>
+      <p class="sub"><span data-ro="region">Global</span> · <span data-ro="regionBounds">whole Earth</span></p>
+
+      <div class="hero">
+        <b data-ro="value">—</b><span class="unit" data-ro="valueUnit">°C</span>
+        <span class="year" data-ro="year">—</span>
+      </div>
+      <div class="hzrow">
+        <b data-ro="tilt">—</b><span class="unit">dB tilt</span>
+        <span class="cents" data-ro="carrier">220 / 880 Hz</span>
+      </div>
+      <div class="statusrow">
+        <span class="dot" data-ro-dot></span>
+        <span data-ro="status">Press play</span>
+        <span class="right" data-ro="coverage">—</span>
+      </div>
+
+      <div class="sr-only" aria-live="polite" aria-atomic="true" data-live></div>
+    </section>
+
+    <section class="panel" aria-labelledby="validTitle" id="validPanel">
+      <h2 class="ptitle" id="validTitle">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/></svg>
+        Live Validation
+      </h2>
+      <p class="sub" data-ro="vHeader">8192-point FFT, band power at each partial, tapped before the mixer.</p>
+
+      <div class="residualhero">
+        <b data-ro="vResidual">—</b>
+        <span class="caption">residual</span>
+      </div>
+
+      <dl class="rows">
+        <dt>encoded</dt><dd data-ro="vExpected">—</dd>
+        <dt>measured</dt><dd data-ro="vMeasured">—</dd>
+        <dt>recovered</dt><dd data-ro="vRecovered">—</dd>
+      </dl>
+
+      <div class="faultrow">
+        <button id="faultBtn" aria-pressed="false" aria-describedby="faultHelp">Break the encoder</button>
+        <p id="faultHelp" class="note">
+          Offsets what the carrier sounds while leaving what it reports alone, so the sound
+          and the claim disagree on purpose. The residual above should jump by the full
+          offset and stay there until you repair it. If it did not move, it would not be
+          measuring anything.
+        </p>
+      </div>
+
+      <div class="masterrow">
+        <label for="master">Master volume — drag it, the residual will not move</label>
+        <input type="range" id="master" min="0" max="100" step="1" value="90" aria-describedby="masterHelp">
+        <p id="masterHelp" class="note">
+          Both partials pass through this fader, so it cancels in the ratio. That is
+          what makes the measurement a measurement and not a loudness.
+        </p>
+      </div>
+
+      <p class="note" data-ro="vNote">Press play to start the audio and begin measuring.</p>
+    </section>
+  </div>
+</main>
+
+<section class="panel" aria-labelledby="trendTitle" id="trendPanel">
+  <div class="trendhead">
+    <h2 class="ptitle" id="trendTitle">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 7-8"/><path d="M14 7h6v6"/></svg>
+      Trend
+    </h2>
+    <span class="yearchip" data-ro="trendYear">—</span>
+  </div>
+  <p class="sub" data-ro="trendSub">Drag the year slider, or use the arrow keys, to move through the record.</p>
+  <canvas id="trend" aria-hidden="true"></canvas>
+</section>
+
+<section class="panel legend" aria-labelledby="legendTitle">
+  <h2 class="ptitle" id="legendTitle">What you are hearing</h2>
+  <p class="sub" style="margin-bottom:12px">The legend, in words. A colour bar is not a legend for a listener.</p>
+  <p data-ro="contractLegend"></p>
+  <p>
+    <strong>Hear the scale</strong> plays that legend instead of printing it: the bottom of
+    the range, the balance point, the top, each named as it sounds. Spectral tilt is harder
+    to read by ear than pitch, and pretending otherwise would be the same mistake as a
+    picture with no colour bar. Giving the ear its three reference points first is the
+    honest fix, and the residual runs during the preview too, so those three tones are held
+    to the same contract the record is.
+  </p>
+
+  <h3 style="font-size:13.5px;margin:16px 0 6px">Where the numbers come from</h3>
+  <p>
+    Every track here starts at a <strong>picture</strong>, not at a dataset. NASA's
+    Scientific Visualization Studio publishes the frame and, beside it, the colour bar
+    that frame was painted with: a mapping from value to colour that someone else
+    defined and stated. Every pixel is converted to a perceptually uniform colour space
+    and matched to its nearest point on that bar, which returns a value and a distance.
+    The distance is the test. A pixel that lands on the bar is data; one that lands far
+    from it is basemap, coastline, label or annotation, and falls silent rather than
+    being read as a low number. The <strong>Show discarded pixels</strong> button above
+    darkens exactly those, so you can see what was thrown away.
+  </p>
+  <p>
+    Running a published bar backwards is a measurement because the bar was published.
+    It is also only ever as faithful as that bar, so each recovered track prints how
+    accurately its own colour bar inverts its own colours. That is the floor beneath
+    every value it can produce.
+  </p>
+  <p>
+    That is also why nothing here is read from a numeric product, however convenient one
+    would be. The challenge asks for the EIC Content Database to be used as data, and
+    the pictures are what it publishes. A track built from a dataset we fetched ourselves
+    would be answering a different question.
+  </p>
+
+  <h3 style="font-size:13.5px;margin:16px 0 6px">How to tell the residual is real</h3>
+  <p>
+    A number that always reads near zero is indistinguishable from a number that is
+    hardcoded, so there is a control that breaks it. <strong>Break the encoder</strong>
+    offsets what the carrier sounds by a quarter of the region's range and leaves what it
+    reports untouched. The audio and the claim then disagree on purpose, and the residual
+    jumps by the whole offset within a step and stays there until it is repaired. That is
+    the demonstration that the measurement is reading the audio rather than echoing the
+    payload.
+  </p>
+
+  <h3 style="font-size:13.5px;margin:16px 0 6px">What this instrument refuses to sonify</h3>
+  <p>
+    Not every EIC visualization can be inverted, and the difference decided what shipped
+    here. These were examined and left out:
+  </p>
+  <ul>
+    <li><strong>Volumetric CO₂ and CH₄</strong> (SVS 5196, 5115, 5116): the pages
+      describe colour only qualitatively. No range, no units, no bar.</li>
+    <li><strong>GEOS aerosols</strong> (SVS 5669): several species in one picture, so a
+      colour says <em>which</em> aerosol, not how much. There is no single quantity to
+      recover.</li>
+    <li><strong>Change in night lights</strong> (SVS 5313): the legend reads lights out,
+      no change, new lights. Those are categories, and a category has no midpoint to
+      balance two tones around.</li>
+  </ul>
+  <p>
+    Any value read out of those would have been invented here rather than recovered, and
+    <strong>a soundscape with a residual beside it would claim a measurement that does
+    not exist</strong>. The catalogue loader enforces the rule that produced this list: a
+    track may not describe itself as measured without naming the published bar it came
+    from, and the page refuses to start if one does.
+  </p>
+  <p>
+    A still frame has no time axis, so it is played by <strong>sweeping it</strong>,
+    north to south for a map and top to bottom for a frame whose geography was never
+    published, sounding the area-weighted mean of each band. The line on the frame shows
+    where the sound is coming from.
+  </p>
+  <p>
+    <strong>No pitch anywhere in this instrument encodes anything.</strong> The two carrier
+    partials never move, and the pad plays ordinary notes on an ordinary keyboard. The chord
+    progression runs on a musical clock, four bars each, regardless of what the record is
+    doing. The key selector is there to prove it: change key mid-playback and the residual
+    does not move. Only the balance between the two partials carries the measurement, and
+    it is held at each step's value until the next one.
+  </p>
+  <p>
+    Hiss under the tone is a <strong>coverage proxy</strong>: it grows as the share of the region
+    actually observed at that step falls. It comes from the coverage figure shown in the readout,
+    not from a published uncertainty estimate, and it is labelled a proxy because an unlabelled
+    one would not be honest. Silence means no observation at all, never a value near the baseline.
+  </p>
+
+  <h3 style="font-size:13.5px;margin:16px 0 6px">Without the screen</h3>
+  <p>
+    Every frame carries a written description, the catalogue refuses to load a frame track
+    that has none, and both canvases are marked decorative because everything in them is
+    also printed, spoken and sounded. <strong>Speak values</strong> in the header announces
+    the step, its measured value and the live residual every few seconds while the record
+    plays, so the whole instrument including its own error can be followed by ear. It is
+    throttled on purpose: a live region updated at the step rate queues faster than any
+    screen reader drains it.
+  </p>
+
+  <h3 style="font-size:13.5px;margin:16px 0 6px">What the musical layer adds that the data does not contain</h3>
+  <ul>
+    <li><strong>The chords and the progression.</strong> Four bars each on a musical clock, in whichever key you pick. Nothing about which notes sound encodes anything.</li>
+    <li><strong>The brightness sweep.</strong> The pad's lowpass follows the value, mirroring the carrier's tilt. It is a knob, not an observable, which is exactly why the contract is not defined on it.</li>
+    <li><strong>Reverb size,</strong> which opens from a room to a hall as observed coverage falls. Presentation of a real property of the data, not a measurement of it.</li>
+    <li><strong>Delay feedback,</strong> which grows with the smoothed step-to-step change over a 4-second window. A smoothed derivative is a different quantity from a derivative.</li>
+    <li><strong>The voicing, detune, envelopes, overdrive, the 5/16 and 7/16 delay divisions and the noise bed,</strong> all chosen by ear.</li>
+  </ul>
+  <p style="margin-top:10px">
+    The carrier does none of these things. It is two pure sines at fixed frequencies whose
+    balance is set only by the contract, and the validator's tap sits on the pair, before the
+    mixer, so raising the pad, the reverb or the master fader cannot move the residual. Because
+    the measurement is a <em>ratio</em>, even the listener's volume knob cancels out of it.
+  </p>
+
+  <h3 style="font-size:13.5px;margin:16px 0 6px">Keyboard</h3>
+  <ul>
+    <li><kbd>Space</kbd> play or pause · <kbd>←</kbd> <kbd>→</kbd> step one band · <kbd>Home</kbd> <kbd>End</kbd> start or end</li>
+    <li><kbd>L</kbd> hear the scale · <kbd>V</kbd> speak values · <kbd>B</kbd> break or repair the encoder</li>
+    <li><kbd>R</kbd> reference tone · <kbd>M</kbd> musical layer · <kbd>S</kbd> simplified mode · <kbd>D</kbd> discarded pixels</li>
+    <li><kbd>1</kbd>–<kbd>4</kbd> change region · <kbd>Tab</kbd> reaches every control, including the track list and the key selector</li>
+  </ul>
+</section>
+
+<footer>
+  <span data-ro="footerContract"></span>
+  <span>· noise = coverage proxy</span>
+  <span>· silence = no observation</span>
+  <span class="right">NASA Scientific Visualization Studio</span>
+</footer>
+
+<script type="module" src="./src/app.js"></script>
+</body>
+</html>

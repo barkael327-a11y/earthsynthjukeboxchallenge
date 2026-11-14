@@ -7,7 +7,6 @@
  * Both are A naturals two octaves apart (geometric mean 440 Hz), so they sit
  * naturally inside the pad's harmonic content rather than reading as test tones.
  *
- *
  * The analyser tap is before the sum's output trim, so the mixer level and
  * reverb send cannot affect the measurement.
  */
@@ -63,6 +62,10 @@ export class CarrierLayer {
     this._lastLow = 0;
     this._lastHigh = 0;
 
+    // Deliberate encoding error, in the track's units. Zero in normal use; set
+    // by the "break the encoder" control so the residual can be seen to catch it.
+    this._fault = 0;
+
     // sum is after the tap; output is after sum. Changing output changes
     // what is heard and nothing that is measured.
     this.sum = ctx.createGain();
@@ -96,6 +99,7 @@ export class CarrierLayer {
     this.oscHigh.start();
 
     this._referenceHeld = false;
+    this._padPlaying = false;
   }
 
   /**
@@ -140,6 +144,17 @@ export class CarrierLayer {
   heldSample(index) {
     const clamped = Math.min(Math.max(index, 0), this.series.count - 1);
     return this.series.sampleAt(this.region.id, Math.floor(clamped));
+  }
+
+  /**
+   * Point the validator at a value that is not coming from the record, so the
+   * scale preview is held to the same contract the record is. Pass null when
+   * nothing is being claimed.
+   * @param {number|null} value
+   */
+  expectValue(value) {
+    this._expectedValue = value;
+    this._expectedTilt = value === null ? null : this.region.contract.toTilt(value);
   }
 
   /**
@@ -201,11 +216,71 @@ export class CarrierLayer {
       return;
     }
 
-    const { low, high } = this.region.contract.partialGains(s.value, REFERENCE_GAIN);
+    // The fault is added to what is sounded and deliberately left out of the
+    // expectation above, so the two disagree by exactly the injected amount.
+    const encoded = s.value + this._fault;
+    const { low, high } = this.region.contract.partialGains(encoded, REFERENCE_GAIN);
     this.gainLow.gain.linearRampToValueAtTime(low,   when + GLIDE);
     this.gainHigh.gain.linearRampToValueAtTime(high, when + GLIDE);
     this._lastLow  = low;
     this._lastHigh = high;
+  }
+
+  /**
+   * Sound a short sequence of values so the ear has something to measure the
+   * tilt against before the record starts. The published colour bar tells a
+   * sighted listener what the colours mean; this is the same for the tones.
+   *
+   * It cancels everything scheduled and ends silent, so the caller has to seek
+   * afterwards to put the carrier back on the record.
+   *
+   * @param {number[]} values in the track's own units
+   * @param {number} [hold] seconds each value is held
+   * @returns {{schedule:{value:number, at:number}[], endsAt:number}}
+   */
+  playScale(values, hold = 1.1) {
+    const now = this.ctx.currentTime;
+    for (const p of [this.gainLow.gain, this.gainHigh.gain]) {
+      p.cancelScheduledValues(now);
+      p.setValueAtTime(p.value, now);
+      p.linearRampToValueAtTime(0, now + FADE);
+    }
+    this._lastLow = 0;
+    this._lastHigh = 0;
+    this.expectValue(null);
+
+    const schedule = [];
+    let at = now + FADE;
+    for (const value of values) {
+      const { low, high } = this.region.contract.partialGains(value, REFERENCE_GAIN);
+      this.gainLow.gain.setValueAtTime(this._lastLow, at);
+      this.gainHigh.gain.setValueAtTime(this._lastHigh, at);
+      this.gainLow.gain.linearRampToValueAtTime(low, at + GLIDE);
+      this.gainHigh.gain.linearRampToValueAtTime(high, at + GLIDE);
+      this._lastLow = low;
+      this._lastHigh = high;
+      schedule.push({ value, at });
+      at += hold;
+    }
+
+    this.gainLow.gain.setValueAtTime(this._lastLow, at);
+    this.gainHigh.gain.setValueAtTime(this._lastHigh, at);
+    this.gainLow.gain.linearRampToValueAtTime(0, at + GLIDE);
+    this.gainHigh.gain.linearRampToValueAtTime(0, at + GLIDE);
+    this._lastLow = 0;
+    this._lastHigh = 0;
+
+    return { schedule, endsAt: at + GLIDE };
+  }
+
+  /**
+   * Offset what the carrier sounds while leaving what it reports alone, so the
+   * sound and the claim disagree on purpose. A residual that does not move under
+   * this is not measuring anything.
+   * @param {number} amount in the track's units; 0 clears it
+   */
+  setFault(amount) {
+    this._fault = amount;
   }
 
   /**

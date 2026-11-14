@@ -2,21 +2,27 @@
  * readout.js - the numbers beside the sound, and what a screen reader hears.
  *
  * Two audiences, one source. Sighted users read the panel; screen-reader users
- * hear the live region. Both are fed from the same state object, so they can't
- * drift apart, and neither is told anything the audio isn't doing.
+ * hear the live region. Both are fed from the same state object, so they cannot
+ * drift apart, and neither is told anything the audio is not doing.
  *
- * The throttle is load-bearing. Dragging the scrub bar moves the playhead sixty
- * times a second, and an aria-live region updated at that rate either floods
- * the speech queue or, on some screen readers, silences itself entirely. So
- * announcements go out at most every ANNOUNCE_MS, plus one final announcement
- * after the playhead has been still for SETTLE_MS. That last one is the one
- * that matters, because it says where the user landed.
+ * The throttle matters more than it looks. Dragging the scrub bar moves the
+ * playhead sixty times a second, and an aria-live region updated at that rate
+ * either floods the speech queue or, on some screen readers, silences itself
+ * entirely. So announcements go out at most every ANNOUNCE_MS, plus one final
+ * announcement after the playhead has been still for SETTLE_MS - which is the
+ * one that actually matters, because it says where the user landed.
  *
  * @module readout
  */
 
 const ANNOUNCE_MS = 1100;
 const SETTLE_MS = 280;
+
+/**
+ * With the residual spoken as well, each line takes several seconds to read
+ * aloud, so it needs correspondingly more room before the next one arrives.
+ */
+const SPEAKING_MS = 3500;
 
 /** @param {number} v */
 const signed = (v, digits = 2) => `${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(digits)}`;
@@ -33,6 +39,8 @@ export class Readout {
       this.fields[/** @type {HTMLElement} */ (el).dataset.ro] = el;
     }
     this.live = root.querySelector('[data-live]');
+    /** Whether the spoken line carries the live residual as well. */
+    this.speakResidual = false;
     this._lastAnnounce = 0;
     this._settleTimer = null;
     this._pending = '';
@@ -59,8 +67,8 @@ export class Readout {
   update(s) {
     const label = s.label ?? String(Math.round(s.year));
     // Signed only where the sign means something. A sea surface temperature
-    // printed as "+27.70" would be asserting a departure from a reference that
-    // was never measured; the GISTEMP anomaly genuinely is one.
+    // printed as "+27.70" would be asserting a departure from a reference
+    // that was never measured; the GISTEMP anomaly genuinely is one.
     const show = (v, d = 2) => (s.diverging === false ? v.toFixed(d) : signed(v, d));
 
     this.set('region', s.regionLabel);
@@ -90,32 +98,30 @@ export class Readout {
 
     // -- the validation panel ---------------------------------------------
     const v = s.validation;
-    const clearValidation = (note) => {
-      this.set('vResidual', '—');
+    if (!s.started) {
       this.set('vExpected', '—');
       this.set('vMeasured', '—');
       this.set('vRecovered', '—');
-      this.set('vNote', note);
-      const el = this.fields.vResidual;
-      if (el) delete el.dataset.ok;
-    };
-
-    if (!s.started) {
-      clearValidation('Press play to start the audio and begin measuring.');
+      this.set('vResidual', '—');
+      this.set('vNote', 'Press play to start the audio and begin measuring.');
     } else if (!v) {
-      clearValidation('The carrier is silent, so there is nothing to measure.');
+      this.set('vExpected', '—');
+      this.set('vMeasured', '—');
+      this.set('vRecovered', '—');
+      this.set('vResidual', '—');
+      this.set('vNote', 'The carrier is silent, so there is nothing to measure.');
     } else {
       const dB = (x) => `${x >= 0 ? '+' : '−'}${Math.abs(x).toFixed(3)} dB`;
-      const u = s.contract.units;
-      // The residual is the headline. It is the only number on this panel that
-      // says whether the instrument is telling the truth.
-      this.set('vResidual', `${v.residual.toFixed(4)} ${u}`);
       this.set('vExpected', dB(v.expectedTilt));
       this.set('vMeasured', dB(v.tilt));
+      const u = s.contract.units;
       this.set('vRecovered', `${show(v.recovered, 4)} ${u}`);
+      this.set('vResidual', `${v.residual.toFixed(4)} ${u}`);
       this.set(
         'vNote',
-        `${this._fftLabel(v)} At this slope the analysis resolves ${v.resolution.toFixed(4)} ${u}.`
+        `${this._fftLabel(v)} At this slope the analysis resolves ${v.resolution.toFixed(4)} ${u}. ` +
+        `Raising the pad, the reverb or the master fader cannot move this number: both partials ` +
+        `pass through the same gain, so it cancels in the ratio.`
       );
       const el = this.fields.vResidual;
       if (el) el.dataset.ok = String(v.withinTolerance);
@@ -143,15 +149,24 @@ export class Readout {
       : s.diverging === false
         ? `${s.value.toFixed(2)} ${unit}`
         : `${s.value >= 0 ? 'plus' : 'minus'} ${Math.abs(s.value).toFixed(2)} ${unit}`;
-    const text = s.observed && s.value !== null
+    let text = s.observed && s.value !== null
       ? `${label}, ${amount}, ` +
         `${s.coverage > 0.995 ? 'fully observed' : `${(s.coverage * 100).toFixed(0)} percent observed`}` +
         `${s.interpolated ? ', between steps' : ''}`
       : `${label}, no observation`;
 
+    // The residual goes on the end of this line rather than into a second
+    // announcement of its own. One live region with two writers means whichever
+    // flushes last wins and the other is never heard.
+    const v = s.validation;
+    if (this.speakResidual && v && Number.isFinite(v.residual)) {
+      text += `, residual ${v.residual.toFixed(3)}`;
+    }
+
     this._pending = text;
     const now = performance.now();
-    if (now - this._lastAnnounce > ANNOUNCE_MS) this._flush();
+    const gap = this.speakResidual ? SPEAKING_MS : ANNOUNCE_MS;
+    if (now - this._lastAnnounce > gap) this._flush();
 
     clearTimeout(this._settleTimer);
     this._settleTimer = setTimeout(() => this._flush(), SETTLE_MS);
