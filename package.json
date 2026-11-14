@@ -1,0 +1,15 @@
+{
+  "name": "earthsynth",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A verifiable sonification of NASA EIC visualizations (sea surface temperature and tropospheric NO2), recovered through their published colour bars. The page itself has no dependencies and no build step; jsdom is a devDependency used only by the page smoke test.",
+  "scripts": {
+    "test": "node --test \"test/*.test.mjs\"",
+    "typecheck": "tsc --noEmit --allowJs --checkJs --target es2022 --module esnext --moduleResolution bundler src/*.js",
+    "serve": "python3 -m http.server 8000"
+  },
+  "devDependencies": {
+    "jsdom": "^31.0.0"
+  }
+}

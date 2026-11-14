@@ -1,0 +1,9 @@
+node_modules/
+*.nc
+*.nc.gz
+__pycache__/
+dist/
+dist-artifact/
+sources/
+*.wav
+earthsynth-validation.json
