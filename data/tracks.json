@@ -44,7 +44,7 @@
       "tier": "verifiable",
       "path": "./data/no2/",
       "units": "10\u00b9\u2075 molecules/cm\u00b2",
-      "frame": "./data/frames/no2_northeast.jpg",
+      "frame": "./data/frames/no2_hires.jpg",
       "frameAlt": "Nitrogen dioxide over the north-eastern United States, averaged over Marches from 2015 to 2019. Dark plumes sit over the cities of the eastern seaboard, brightest over New York, with lighter trails along the corridor toward Washington and over the Great Lakes.",
       "bar": "./data/frames/bar_no2.png",
       "barSource": "the 0\u201310 \u00d710\u00b9\u2075 molecules/cm\u00b2 NO\u2082 bar published with the frame",

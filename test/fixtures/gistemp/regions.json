@@ -1,0 +1,159 @@
+{
+  "note": "Definitions only. Every value is computed in the browser from field.i16; nothing here carries a measurement. slope is dB of spectral tilt per degree C between the 220 Hz and 880 Hz carrier partials; see src/contract.js.",
+  "regions": [
+    {
+      "id": "global",
+      "label": "Global",
+      "slope": 20.0,
+      "requested_bounds": {
+        "lat": [
+          -90,
+          90
+        ],
+        "lon": [
+          -180,
+          180
+        ]
+      },
+      "bounds": {
+        "lat": [
+          -90.0,
+          90.0
+        ],
+        "lon": [
+          -180.0,
+          180.0
+        ]
+      },
+      "cells": 16200,
+      "min": -0.4844,
+      "max": 1.2869,
+      "quantization_cost": 9.7e-05,
+      "published_comparison": {
+        "source": "GLB.Ts+dSST J-D",
+        "years": 146,
+        "mean_difference": -0.0001,
+        "max_abs_difference": 0.0453
+      },
+      "tilt_range_db": [
+        -9.69,
+        25.74
+      ],
+      "resolution_degC": 0.0025
+    },
+    {
+      "id": "arctic",
+      "label": "Arctic",
+      "slope": 8.0,
+      "requested_bounds": {
+        "lat": [
+          64,
+          90
+        ],
+        "lon": [
+          -180,
+          180
+        ]
+      },
+      "bounds": {
+        "lat": [
+          64.0,
+          90.0
+        ],
+        "lon": [
+          -180.0,
+          180.0
+        ]
+      },
+      "cells": 2340,
+      "min": -1.7592,
+      "max": 3.1967,
+      "quantization_cost": 0.000728,
+      "published_comparison": {
+        "source": "64N-90N",
+        "years": 146,
+        "mean_difference": -0.0231,
+        "max_abs_difference": 0.1879
+      },
+      "tilt_range_db": [
+        -14.07,
+        25.57
+      ],
+      "resolution_degC": 0.00625
+    },
+    {
+      "id": "n-eurasia",
+      "label": "Northern Eurasia",
+      "slope": 10.0,
+      "requested_bounds": {
+        "lat": [
+          45,
+          65
+        ],
+        "lon": [
+          10,
+          180
+        ]
+      },
+      "bounds": {
+        "lat": [
+          44.0,
+          66.0
+        ],
+        "lon": [
+          10.0,
+          180.0
+        ]
+      },
+      "cells": 935,
+      "min": -1.1953,
+      "max": 2.6037,
+      "quantization_cost": 0.000358,
+      "tilt_range_db": [
+        -11.95,
+        26.04
+      ],
+      "resolution_degC": 0.005
+    },
+    {
+      "id": "tropics",
+      "label": "Tropics",
+      "slope": 20.0,
+      "requested_bounds": {
+        "lat": [
+          -24,
+          24
+        ],
+        "lon": [
+          -180,
+          180
+        ]
+      },
+      "bounds": {
+        "lat": [
+          -24.0,
+          24.0
+        ],
+        "lon": [
+          -180.0,
+          180.0
+        ]
+      },
+      "cells": 4320,
+      "min": -0.6296,
+      "max": 1.1852,
+      "quantization_cost": 0.000143,
+      "published_comparison": {
+        "source": "24S-24N",
+        "years": 146,
+        "mean_difference": -0.0041,
+        "max_abs_difference": 0.0545
+      },
+      "tilt_range_db": [
+        -12.59,
+        23.7
+      ],
+      "resolution_degC": 0.0025
+    }
+  ]
+}

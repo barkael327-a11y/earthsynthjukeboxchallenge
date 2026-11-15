@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EarthSynth — offline validator</title>
+<style>
+  :root { color-scheme: dark; }
+  body {
+    margin: 0; padding: 2rem;
+    background: #0b1220; color: #e8eef7;
+    font: 15px/1.55 ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+    max-width: 60rem;
+  }
+  h1 { font-size: 1.3rem; margin: 0 0 .4rem; }
+  p.lede { color: #9fb3c8; max-width: 46rem; margin: 0 0 1.4rem; }
+  button {
+    font: inherit; padding: .6rem 1.1rem; border-radius: .5rem;
+    border: 1px solid #2b4a63; background: #10263a; color: #e8eef7; cursor: pointer;
+  }
+  button:disabled { opacity: .5; cursor: progress; }
+  #log {
+    margin-top: 1.4rem; padding: 1rem; border-radius: .5rem;
+    background: #070e18; border: 1px solid #1b2b3d;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 13px; white-space: pre-wrap; min-height: 6rem;
+  }
+  .ok  { color: #7fe3c7; }
+  .bad { color: #ff9b9b; }
+  .dim { color: #7b8ea3; }
+</style>
+</head>
+<body>
+
+<h1>EarthSynth — offline validator</h1>
+<p class="lede">
+  Renders the real carrier offline at known values and exports a WAV plus a manifest.
+  Measuring is <code>tools/validate.py</code>'s job; the two share no code.
+</p>
+
+<button id="run">Render and download</button>
+<div id="log" aria-live="polite"></div>
+
+<script type="module">
+import { loadTracks, isPlayable } from './src/tracks.js';
+import { loadSeries }             from './src/earth-series.js';
+import { CarrierLayer }           from './src/audio-carrier.js';
+import { encodeWav, download }    from './src/wav.js';
+
+const SAMPLE_RATE   = 48000;
+const SEGMENT       = 1.0;    // seconds per test value
+const ANALYSIS_SPAN = 0.6;    // fraction of each segment to analyse (skips the glide)
+const GAP           = 0.25;   // silence between groups
+
+const logEl = document.getElementById('run').nextElementSibling;
+const say = (text, cls = '') => {
+  const line = document.createElement('div');
+  if (cls) line.className = cls;
+  line.textContent = text;
+  logEl.appendChild(line);
+};
+
+// Eight evenly-spaced values across the region's range, plus the balance point.
+// Endpoints catch the worst-case tilt; the balance point verifies the 0 dB case.
+function testValues(min, max, balanceAt) {
+  const out = [];
+  for (let i = 0; i < 8; i++) out.push(min + ((max - min) * i) / 7);
+  if (balanceAt > min && balanceAt < max) out.push(balanceAt);
+  return [...new Set(out.map((v) => Number(v.toFixed(6))))].sort((a, b) => a - b);
+}
+
+// Minimal stand-in for EarthSeries. CarrierLayer only needs `count` and `sampleAt`;
+// everything else (oscillators, gains, glide) is the real code under test.
+function valueSource(values) {
+  return {
+    count: values.length,
+    sampleAt: (_id, i) => ({
+      value:        values[Math.min(Math.max(Math.floor(i), 0), values.length - 1)],
+      observed:     true,
+      coverage:     1,
+      year:         i,
+      interpolated: false,
+    }),
+  };
+}
+
+async function renderRegion(region, values, masterGain = 1) {
+  const seconds = values.length * SEGMENT;
+  const ctx = new OfflineAudioContext(1, Math.ceil(seconds * SAMPLE_RATE), SAMPLE_RATE);
+
+  const carrier = new CarrierLayer(ctx, { series: valueSource(values), region });
+
+  const master = ctx.createGain();
+  master.gain.value = masterGain;
+  carrier.output.connect(master);
+  master.connect(ctx.destination);
+
+  for (let i = 0; i < values.length; i++) {
+    carrier.applyAt(i, i * SEGMENT);
+  }
+
+  const rendered = await ctx.startRendering();
+  return rendered.getChannelData(0);
+}
+
+async function run() {
+  const button = document.getElementById('run');
+  button.disabled = true;
+  logEl.replaceChildren();
+
+  try {
+    const tracks = (await loadTracks()).filter(isPlayable);
+    say(`${tracks.length} playable track(s).`, 'dim');
+
+    const pieces   = [];
+    const segments = [];
+    let cursor = 0;
+
+    const pushSilence = (seconds) => {
+      const n = Math.round(seconds * SAMPLE_RATE);
+      pieces.push(new Float32Array(n));
+      cursor += n;
+    };
+
+    for (const track of tracks) {
+      const series = await loadSeries(track);
+      series.verify();
+      say(`${track.id}: payload verified.`, 'dim');
+
+      for (const [regionId, region] of series.regions) {
+        const c = region.contract;
+        const { min, max } = series.rangeOf(regionId);
+        const values = testValues(min, max, c.balanceAt);
+
+        for (const attenuated of [false, true]) {
+          // Only run the attenuated pass on the first region of each track.
+          if (attenuated && regionId !== series.regions.keys().next().value) continue;
+
+          const gain  = attenuated ? 0.08 : 1;
+          const audio = await renderRegion(region, values, gain);
+
+          pushSilence(GAP);
+          const startSample = cursor;
+          pieces.push(audio);
+          cursor += audio.length;
+
+          const segLen = Math.round(SEGMENT * SAMPLE_RATE);
+          const skip   = Math.round((segLen * (1 - ANALYSIS_SPAN)) / 2);
+          values.forEach((value, i) => {
+            const segStart = startSample + i * segLen;
+            segments.push({
+              track: track.id, trackLabel: track.label,
+              region: regionId, regionLabel: region.label,
+              units: c.units, slope: c.slope, balanceAt: c.balanceAt,
+              fLow: c.fLow, fHigh: c.fHigh,
+              masterGain: gain, attenuated,
+              expectedValue: value,
+              expectedTilt:  c.toTilt(value),
+              analysisStart: segStart + skip,
+              analysisEnd:   segStart + segLen - skip,
+            });
+          });
+
+          say(
+            `${track.id} / ${regionId}${attenuated ? ' (attenuated x0.08)' : ''}: ` +
+            `${values.length} values, ${(audio.length / SAMPLE_RATE).toFixed(1)} s.`,
+            'ok'
+          );
+        }
+      }
+    }
+    pushSilence(GAP);
+
+    const all = new Float32Array(cursor);
+    let at = 0;
+    for (const piece of pieces) { all.set(piece, at); at += piece.length; }
+
+    const manifest = {
+      generated:      new Date().toISOString(),
+      sampleRate:     SAMPLE_RATE,
+      bitDepth:       32,
+      segmentSeconds: SEGMENT,
+      note:
+        'Rendered by validate.html through the real CarrierLayer in an ' +
+        'OfflineAudioContext. analysisStart/analysisEnd are sample offsets into ' +
+        'the WAV, already excluding the glide at each boundary. ' +
+        'expectedValue is what the instrument intended to sound; recovering it ' +
+        "from the audio is tools/validate.py's job.",
+      segments,
+    };
+
+    download(
+      new Blob([encodeWav([all], SAMPLE_RATE, { bitDepth: 32 })], { type: 'audio/wav' }),
+      'earthsynth-validation.wav'
+    );
+    download(
+      new Blob([JSON.stringify(manifest, null, 2)], { type: 'application/json' }),
+      'earthsynth-validation.json'
+    );
+
+    say('');
+    say(`Wrote ${segments.length} segments, ${(cursor / SAMPLE_RATE).toFixed(1)} s total.`, 'ok');
+    say(
+      'Now run:  python tools/validate.py --wav earthsynth-validation.wav ' +
+      '--manifest earthsynth-validation.json --out docs/validation.md',
+      'dim'
+    );
+  } catch (err) {
+    say(String(err?.message ?? err), 'bad');
+    console.error(err);
+  } finally {
+    button.disabled = false;
+  }
+}
+
+document.getElementById('run').addEventListener('click', run);
+</script>
+</body>
+</html>
