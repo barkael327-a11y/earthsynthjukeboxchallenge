@@ -1,0 +1,31 @@
+{
+  "note": "Regions for an EIC frame track. The cells, the cos(latitude) weighting and the masks are identical to the GISTEMP track, so the two are comparable rather than merely adjacent.",
+  "regions": [
+    {
+      "id": "frame",
+      "label": "Whole frame",
+      "slope": 3.0,
+      "requested_bounds": {
+        "lat": [
+          0,
+          1000000
+        ],
+        "lon": [
+          0,
+          1000000
+        ]
+      },
+      "bounds": {
+        "lat": [
+          0,
+          1000000
+        ],
+        "lon": [
+          0,
+          1000000
+        ]
+      },
+      "cells": 3600
+    }
+  ]
+}

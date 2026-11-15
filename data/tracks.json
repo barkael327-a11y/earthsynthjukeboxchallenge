@@ -1,0 +1,75 @@
+{
+  "note": "The jukebox catalogue. Every track here is 'verifiable': recovered through a published colour bar and carrying a contract, a tolerance and a live residual. The 'unanchored' tier still exists in tracks.js and is still enforced - a track may not claim to be verifiable without naming the bar it came from - but nothing unanchored ships. The visualizations that fall in that tier, and why, are named in the written legend instead: shipping them as entries that cannot be played made them look unfinished rather than deliberate.",
+  "tracks": [
+    {
+      "id": "sst",
+      "label": "Sea surface temperature",
+      "short": "SST",
+      "origin": "frame",
+      "tier": "verifiable",
+      "path": "./data/sst/",
+      "units": "\u00b0C",
+      "frame": "./data/frames/sst_ecco2.jpg",
+      "frameAlt": "A global map of ocean surface currents drawn as fine flowing streamlines, coloured by water temperature: deep blue near both poles, green through the mid-latitudes, and a broad orange and red belt across the tropics. Continents are flat grey.",
+      "bar": "./data/frames/bar_sst.png",
+      "barSource": "the 0\u201332 \u00b0C bar printed on the Perpetual Ocean frame",
+      "source": "https://svs.gsfc.nasa.gov/3912/",
+      "sourceLabel": "SVS 3912 \u00b7 Global Sea Surface Currents and Temperature",
+      "credit": "NASA's Scientific Visualization Studio / ECCO2",
+      "blurb": "An ECCO2 still of global surface currents, listened to from the north pole to the south. The tropical belt is loud and the polar water is quiet, and that contrast is the ocean's heat, recovered from the picture's own colours.",
+      "terms": {
+        "units": "\u00b0C",
+        "balanceAt": 16,
+        "balanceLabel": "the middle of the published 0\u201332 \u00b0C bar",
+        "rising": "warming",
+        "falling": "cooling"
+      },
+      "scale": {
+        "kind": "sequential",
+        "lo": 0,
+        "hi": 32,
+        "hue": "ember"
+      },
+      "inversionError": {
+        "mean": 0.0771,
+        "max": 0.1905
+      },
+      "globe": true
+    },
+    {
+      "id": "no2",
+      "label": "Tropospheric NO\u2082",
+      "short": "NO\u2082",
+      "origin": "frame",
+      "tier": "verifiable",
+      "path": "./data/no2/",
+      "units": "10\u00b9\u2075 molecules/cm\u00b2",
+      "frame": "./data/frames/no2_northeast.jpg",
+      "frameAlt": "Nitrogen dioxide over the north-eastern United States, averaged over Marches from 2015 to 2019. Dark plumes sit over the cities of the eastern seaboard, brightest over New York, with lighter trails along the corridor toward Washington and over the Great Lakes.",
+      "bar": "./data/frames/bar_no2.png",
+      "barSource": "the 0\u201310 \u00d710\u00b9\u2075 molecules/cm\u00b2 NO\u2082 bar published with the frame",
+      "source": "https://svs.gsfc.nasa.gov/5533/",
+      "sourceLabel": "SVS \u00b7 Air Quality Model Runs",
+      "credit": "NASA's Scientific Visualization Studio",
+      "blurb": "An air-quality still swept top to bottom. Its colour bar inverts almost exactly, so the numbers are firm \u2014 but only the plume pixels are data. The basemap underneath them is not, and it falls silent rather than reading as clean air.",
+      "terms": {
+        "units": "\u00d710\u00b9\u2075 molecules/cm\u00b2",
+        "balanceAt": 5,
+        "balanceLabel": "the middle of the published 0\u201310 bar",
+        "rising": "rising concentration",
+        "falling": "falling concentration"
+      },
+      "scale": {
+        "kind": "sequential",
+        "lo": 0,
+        "hi": 10,
+        "hue": "violet"
+      },
+      "inversionError": {
+        "mean": 0.006,
+        "max": 0.0481
+      },
+      "globe": false
+    }
+  ]
+}

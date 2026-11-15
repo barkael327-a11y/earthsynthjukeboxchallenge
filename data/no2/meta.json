@@ -1,0 +1,201 @@
+{
+  "schema": 1,
+  "generated": "2026-11-14",
+  "dataset": {
+    "name": "Tropospheric NO2 (NASA SVS / Earth Information Center)",
+    "attribution": "NASA's Scientific Visualization Studio",
+    "source_url": "https://svs.gsfc.nasa.gov/5533/",
+    "units": "1e15 molecules/cm2",
+    "colour_bar": "cbar_NO2.png",
+    "colour_bar_range": [
+      0.0,
+      10.0
+    ],
+    "derivation": "Recovered from the published colour bar of the EIC visual frames, not from the numeric product behind them. The bar is a mapping someone else defined and stated; this runs it backwards.",
+    "inversion_error": {
+      "mean": 0.00602,
+      "max": 0.04808,
+      "note": "How accurately the colour bar inverts its own colours. This is the floor: a frame can be no more faithful than its own legend."
+    }
+  },
+  "contract": {
+    "slope": 3.0,
+    "balance_at": 5.0,
+    "units": "1e15 molecules/cm2",
+    "note": "3.0 dB of spectral tilt per 1e15 molecules/cm2, level at 5.0. Both come from the published bar: the balance point is its middle and the slope spans 30.0 dB end to end."
+  },
+  "grid": {
+    "nlat": 45,
+    "nlon": 80,
+    "kind": "image",
+    "lat_start": 0.0,
+    "lat_step": 1.0,
+    "lon_start": 0.0,
+    "lon_step": 1.0,
+    "note": "Rows and columns of the published frame. This visualization states no geographic bounds, so georeferencing it would mean inventing the one number that makes a map a map. The values are still recovered through the published colour bar; only their placement on the Earth is unclaimed."
+  },
+  "axis": {
+    "kind": "scan-lat",
+    "note": "A still frame has no time axis, so the transport sweeps it north to south, sounding the area-weighted mean of each latitude band."
+  },
+  "time": {
+    "cadence": "frame",
+    "count": 1,
+    "frames": [
+      "no2_frame01.png"
+    ]
+  },
+  "field": {
+    "file": "field.i16.gz",
+    "encoding": "gzip",
+    "dtype": "int16",
+    "endianness": "little",
+    "layout": "[frame][lat][lon], C order",
+    "scale_factor": 0.00033333,
+    "offset": 0.0,
+    "fill_value": 32767,
+    "bytes_gzipped": 2072,
+    "sha256": "cf71a321e068d93baf537b1183ab04e57b9032541e6f3f247cb7e506a04c83a4"
+  },
+  "landfrac": {
+    "file": "landfrac.u8",
+    "dtype": "uint8",
+    "scale": 0.00392156862745098,
+    "layout": "[lat][lon], C order",
+    "note": "Presentation only; carries no magnitude."
+  },
+  "coverage": [
+    0.2233
+  ],
+  "cells_observed": [
+    804
+  ],
+  "threshold": 0.025,
+  "min_pixels": 2,
+  "geo": [
+    -90,
+    90,
+    -180,
+    180
+  ],
+  "crop": null,
+  "threshold_note": "OKLab distance from the colour bar beyond which a pixel is treated as not data. Basemap, coastlines, labels and cloud land far from every colour on the bar; data pixels land on it. Marked pixels fall silent, so missing data never sounds like a low value.",
+  "verification": {
+    "note": "CHECK VALUES, NOT DATA. The player recomputes these in the browser from field.i16 and refuses to sound anything if they disagree.",
+    "tolerance": 1e-06,
+    "tolerance_note": "Computed from the quantized payload - the same bytes the browser decodes - so the only disagreement this can catch is a real one.",
+    "probes": [
+      {
+        "index": 514,
+        "raw": 32767
+      },
+      {
+        "index": 1200,
+        "raw": 32767
+      },
+      {
+        "index": 3599,
+        "raw": 32767
+      }
+    ],
+    "probes_note": "Raw int16 values at known flat indices. A mismatch means the payload was decoded with the wrong endianness or layout.",
+    "regions": {
+      "frame": {
+        "series": [
+          1.249988,
+          1.297987,
+          2.017146,
+          1.514485,
+          1.890314,
+          2.022313,
+          2.04018,
+          1.983499,
+          3.227259,
+          3.268523,
+          3.581601,
+          3.562423,
+          3.586904,
+          3.61963,
+          3.79167,
+          4.101403,
+          4.163215,
+          4.109433,
+          4.047043,
+          5.022519,
+          5.797768,
+          5.345217,
+          4.936629,
+          4.977025,
+          5.083306,
+          5.093552,
+          5.006664,
+          4.586255,
+          4.541515,
+          4.34281,
+          4.197347,
+          4.172742,
+          3.948978,
+          3.597347,
+          3.488632,
+          3.143088,
+          2.749491,
+          2.721639,
+          2.564208,
+          2.414931,
+          2.423134,
+          2.100146,
+          2.011878,
+          2.033513,
+          2.062579
+        ],
+        "coverage": [
+          0.025,
+          0.05,
+          0.025,
+          0.025,
+          0.025,
+          0.1125,
+          0.125,
+          0.1125,
+          0.1,
+          0.1125,
+          0.1375,
+          0.1,
+          0.1375,
+          0.1,
+          0.2,
+          0.225,
+          0.325,
+          0.325,
+          0.35,
+          0.3,
+          0.2875,
+          0.4,
+          0.3625,
+          0.3875,
+          0.35,
+          0.325,
+          0.35,
+          0.3875,
+          0.275,
+          0.3125,
+          0.3,
+          0.25,
+          0.2375,
+          0.25,
+          0.2375,
+          0.175,
+          0.225,
+          0.2125,
+          0.25,
+          0.1875,
+          0.2625,
+          0.2,
+          0.2875,
+          0.25,
+          0.375
+        ]
+      }
+    }
+  }
+}
