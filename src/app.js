@@ -13,6 +13,11 @@
  * quantities with two different contracts, and a carrier carried over between
  * them would at best sound the old slope and at worst sound both.
  *
+ * The start screen is a panel over the page, not a route. The instrument mounts
+ * underneath while the choices are still showing, so dismissing it reveals a
+ * page that is already running. Map and globe are both built either way; the
+ * view only decides which one is on screen.
+ *
  * @module app
  */
 
@@ -43,11 +48,15 @@ async function main() {
 
   /** Everything that belongs to the track currently loaded. */
   let live = null;
+  /** The track on screen, playable or not. An unanchored one has no `live`. */
+  let shown = null;
   let started = false;
   let scrubbing = false;
   let musical = false;
   let maskOn = false;
   let progression = DEFAULT_PROGRESSION;
+  // The globe is the thing people look at first, so it is what the page opens on.
+  let view = 'globe';
 
   let announcing = false;
   let faulted = false;
@@ -56,10 +65,57 @@ async function main() {
 
   buildTrackTabs();
   buildChordButtons();
+  buildStartScreen();
   bindGlobalControls();
   requestAnimationFrame(frame);
 
   await selectTrack(tracks.find(isPlayable).id);
+
+  // ---------------------------------------------------------------------
+  // the start screen
+  // ---------------------------------------------------------------------
+
+  /**
+   * The track and key buttons here carry the same data attributes as the ones
+   * in the page, so selectTrack() and setProgression() keep both sets in step
+   * without knowing this screen exists.
+   */
+  function buildStartScreen() {
+    const trackRow = $('#startTracks');
+    for (const t of tracks) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.dataset.track = t.id;
+      b.setAttribute('aria-pressed', 'false');
+      b.textContent = t.label;
+      b.addEventListener('click', () => selectTrack(t.id));
+      trackRow.appendChild(b);
+    }
+
+    const chordRow = $('#startChords');
+    for (const [id, p] of Object.entries(PROGRESSIONS)) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.dataset.progression = id;
+      b.setAttribute('aria-pressed', String(id === progression));
+      b.textContent = p.label;
+      b.addEventListener('click', () => setProgression(id));
+      chordRow.appendChild(b);
+    }
+  }
+
+  function dismissStart() {
+    $('#start').hidden = true;
+    $('#play').focus();
+  }
+
+  /** Back to the choices. The record stops rather than playing on behind them. */
+  function openStart() {
+    live?.timeline.pause();
+    endScale();
+    $('#start').hidden = false;
+    $('#startBegin').focus();
+  }
 
   // ---------------------------------------------------------------------
   // the catalogue
@@ -87,9 +143,14 @@ async function main() {
     if (!track || live?.track.id === id) return;
 
     for (const b of document.querySelectorAll('[data-track]')) {
-      b.setAttribute('aria-selected', String(b.dataset.track === id));
+      // Tabs in the page announce selection; the plain buttons on the start
+      // screen are pressed. Same state, the attribute the role calls for.
+      const on = b.dataset.track === id;
+      const attr = b.getAttribute('role') === 'tab' ? 'aria-selected' : 'aria-pressed';
+      b.setAttribute(attr, String(on));
     }
     teardown();
+    shown = track;
     showFrame(track);
     applyTrackText(track);
 
@@ -99,6 +160,7 @@ async function main() {
       setPlayable(false);
       setMask(false);
       $('#maskToggle').disabled = true;
+      applyView();
       readout.say(`${track.label}. ${tierExplanation(track)}`);
       return;
     }
@@ -157,11 +219,11 @@ async function main() {
     scrub.max = String(series.count - 1);
     scrub.value = '0';
 
-    $('#globeWrap').hidden = !globe;
     buildRegionTabs();
     applyRegionText();
     drawColourBar($('#colourbar'), scale);
     $('#barUnits').innerHTML = `${track.label}<br>(${track.units})`;
+    applyView();
 
     // The mix, the key and the mask all survive a track change: they are the
     // listener's preferences, not properties of the record.
@@ -194,12 +256,52 @@ async function main() {
   }
 
   // ---------------------------------------------------------------------
+  // map or globe
+  // ---------------------------------------------------------------------
+
+  /** @param {'map'|'globe'} v */
+  function setView(v) {
+    view = v;
+    for (const b of document.querySelectorAll('[data-view]')) {
+      b.setAttribute('aria-pressed', String(b.dataset.view === v));
+    }
+    applyView();
+    readout.say(v === 'globe'
+      ? 'Globe. The same field on a sphere, selected by region.'
+      : 'Map. The published frame, swept north to south.');
+  }
+
+  /**
+   * Both views are built; this decides which is on screen. The globe is
+   * optional - a frame whose geography was never published has none - so a
+   * track without one stays on the map whatever the toggle says.
+   */
+  function applyView() {
+    const hasGlobe = Boolean(live?.globe);
+    const showGlobe = hasGlobe && view === 'globe';
+    $('#viewGlobe').disabled = !hasGlobe;
+    $('#startGlobe').disabled = !hasGlobe;
+    $('#globeWrap').hidden = !showGlobe;
+    $('#framePanel').hidden = showGlobe || !shown;
+    $('#frameCtl').hidden = showGlobe;
+    $('#frameFoot').hidden = showGlobe;
+
+    // Both canvases size themselves from their rendered box, and a hidden
+    // element measures zero. They are built while this panel is closed, so
+    // without re-measuring here the globe's pixel map is one pixel stretched
+    // across the canvas and the colour bar is a single flat band.
+    if (showGlobe) {
+      live.globe.resize();
+      drawColourBar($('#colourbar'), live.scale);
+    }
+  }
+
+  // ---------------------------------------------------------------------
   // the EIC frame
   // ---------------------------------------------------------------------
 
   /** @param {any} track */
   function showFrame(track) {
-    const wrap = $('#framePanel');
     const img = /** @type {HTMLImageElement} */ ($('#frameImg'));
     if (track.frame) {
       img.src = track.frame;
@@ -220,7 +322,7 @@ async function main() {
     $('#frameSource').textContent = track.sourceLabel ?? track.source;
     $('#frameSource').href = track.source;
     $('#frameCredit').textContent = track.credit ?? '';
-    wrap.hidden = false;
+    $('#framePanel').hidden = false;
   }
 
   /** @param {any} track */
@@ -254,9 +356,8 @@ async function main() {
     $('#transportNote').hidden = on;
     $('#readoutPanel').hidden = !on;
     $('#validPanel').hidden = !on;
+    $('#controlPanel').hidden = !on;
     $('#trendPanel').hidden = !on;
-    $('#globeWrap').hidden = !on;
-    $('#chordRow').hidden = !on;
     $('#scaleRow').hidden = !on;
   }
 
@@ -305,6 +406,16 @@ async function main() {
     $('#announce').addEventListener('click', (e) =>
       setAnnouncing(e.currentTarget.getAttribute('aria-pressed') !== 'true'));
 
+    $('#viewMap').addEventListener('click', () => setView('map'));
+    $('#viewGlobe').addEventListener('click', () => setView('globe'));
+
+    // On the start screen the view is a choice, not a door. Nothing opens until
+    // Begin, so a first-time reader can set all three and then go in.
+    $('#startMap').addEventListener('click', () => setView('map'));
+    $('#startGlobe').addEventListener('click', () => setView('globe'));
+    $('#startBegin').addEventListener('click', dismissStart);
+    $('#homeBtn').addEventListener('click', openStart);
+
     // The mask is sized from the rendered image, so it can only be drawn once
     // the frame has actually loaded.
     $('#frameImg').addEventListener('load', redrawMask);
@@ -313,6 +424,7 @@ async function main() {
     // range input and the buttons keeps working. Nothing here is the only route
     // to a feature; these are shortcuts to controls that already exist.
     window.addEventListener('keydown', (e) => {
+      if (!$('#start').hidden) return;      // the start screen is still up
       const tag = /** @type {HTMLElement} */ (e.target).tagName;
       if (tag === 'INPUT' || tag === 'BUTTON' || tag === 'SELECT' || e.metaKey || e.ctrlKey) return;
       if (!live && e.key !== 'Tab') return;
@@ -331,6 +443,9 @@ async function main() {
         case 'l': case 'L': if (!e.repeat) playScale(); break;
         case 'b': case 'B': if (!e.repeat) setFault(!faulted); break;
         case 'v': case 'V': if (!e.repeat) setAnnouncing(!announcing); break;
+        case 'g': case 'G':
+          if (!e.repeat && live.globe) setView(view === 'map' ? 'globe' : 'map');
+          break;
         default:
           if (/^[1-9]$/.test(e.key)) {
             const tabs = [...document.querySelectorAll('#regions [role="tab"]')];
