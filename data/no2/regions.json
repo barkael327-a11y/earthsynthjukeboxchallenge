@@ -2,30 +2,108 @@
   "note": "Regions for an EIC frame track. The cells, the cos(latitude) weighting and the masks are identical to the GISTEMP track, so the two are comparable rather than merely adjacent.",
   "regions": [
     {
-      "id": "frame",
-      "label": "Whole frame",
-      "slope": 3.0,
+      "id": "global",
+      "label": "Global",
+      "slope": 6.0,
       "requested_bounds": {
         "lat": [
-          0,
-          1000000
+          -90,
+          90
         ],
         "lon": [
-          0,
-          1000000
+          -180,
+          180
         ]
       },
       "bounds": {
         "lat": [
-          0,
-          1000000
+          -90,
+          90
         ],
         "lon": [
-          0,
-          1000000
+          -180,
+          180
         ]
       },
-      "cells": 3600
+      "cells": 16200
+    },
+    {
+      "id": "tropics",
+      "label": "Tropics",
+      "slope": 6.0,
+      "requested_bounds": {
+        "lat": [
+          -23.5,
+          23.5
+        ],
+        "lon": [
+          -180,
+          180
+        ]
+      },
+      "bounds": {
+        "lat": [
+          -23.5,
+          23.5
+        ],
+        "lon": [
+          -180,
+          180
+        ]
+      },
+      "cells": 4320
+    },
+    {
+      "id": "n-mid",
+      "label": "N mid-latitudes",
+      "slope": 6.0,
+      "requested_bounds": {
+        "lat": [
+          30,
+          60
+        ],
+        "lon": [
+          -180,
+          180
+        ]
+      },
+      "bounds": {
+        "lat": [
+          30,
+          60
+        ],
+        "lon": [
+          -180,
+          180
+        ]
+      },
+      "cells": 2700
+    },
+    {
+      "id": "s-mid",
+      "label": "S mid-latitudes",
+      "slope": 6.0,
+      "requested_bounds": {
+        "lat": [
+          -60,
+          -30
+        ],
+        "lon": [
+          -180,
+          180
+        ]
+      },
+      "bounds": {
+        "lat": [
+          -60,
+          -30
+        ],
+        "lon": [
+          -180,
+          180
+        ]
+      },
+      "cells": 2700
     }
   ]
 }

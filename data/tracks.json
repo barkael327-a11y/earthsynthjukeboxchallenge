@@ -8,19 +8,19 @@
       "origin": "frame",
       "tier": "verifiable",
       "path": "./data/sst/",
-      "units": "\u00b0C",
+      "units": "°C",
       "frame": "./data/frames/sst_ecco2.jpg",
       "frameAlt": "A global map of ocean surface currents drawn as fine flowing streamlines, coloured by water temperature: deep blue near both poles, green through the mid-latitudes, and a broad orange and red belt across the tropics. Continents are flat grey.",
       "bar": "./data/frames/bar_sst.png",
-      "barSource": "the 0\u201332 \u00b0C bar printed on the Perpetual Ocean frame",
+      "barSource": "the 0–32 °C bar printed on the Perpetual Ocean frame",
       "source": "https://svs.gsfc.nasa.gov/3912/",
-      "sourceLabel": "SVS 3912 \u00b7 Global Sea Surface Currents and Temperature",
+      "sourceLabel": "SVS 3912 · Global Sea Surface Currents and Temperature",
       "credit": "NASA's Scientific Visualization Studio / ECCO2",
       "blurb": "An ECCO2 still of global surface currents, listened to from the north pole to the south. The tropical belt is loud and the polar water is quiet, and that contrast is the ocean's heat, recovered from the picture's own colours.",
       "terms": {
-        "units": "\u00b0C",
+        "units": "°C",
         "balanceAt": 16,
-        "balanceLabel": "the middle of the published 0\u201332 \u00b0C bar",
+        "balanceLabel": "the middle of the published 0–32 °C bar",
         "rising": "warming",
         "falling": "cooling"
       },
@@ -38,38 +38,38 @@
     },
     {
       "id": "no2",
-      "label": "Tropospheric NO\u2082",
-      "short": "NO\u2082",
+      "label": "Tropospheric NO₂",
+      "short": "NO₂",
       "origin": "frame",
       "tier": "verifiable",
       "path": "./data/no2/",
-      "units": "10\u00b9\u2075 molecules/cm\u00b2",
-      "frame": "./data/frames/no2_hires.jpg",
-      "frameAlt": "Nitrogen dioxide over the north-eastern United States, averaged over Marches from 2015 to 2019. Dark plumes sit over the cities of the eastern seaboard, brightest over New York, with lighter trails along the corridor toward Washington and over the Great Lakes.",
-      "bar": "./data/frames/bar_no2.png",
-      "barSource": "the 0\u201310 \u00d710\u00b9\u2075 molecules/cm\u00b2 NO\u2082 bar published with the frame",
-      "source": "https://svs.gsfc.nasa.gov/5533/",
-      "sourceLabel": "SVS \u00b7 Air Quality Model Runs",
-      "credit": "NASA's Scientific Visualization Studio",
-      "blurb": "An air-quality still swept top to bottom. Its colour bar inverts almost exactly, so the numbers are firm \u2014 but only the plume pixels are data. The basemap underneath them is not, and it falls silent rather than reading as clean air.",
+      "units": "10¹⁵ molecules/cm²",
+      "frame": "./data/frames/no2_global_2005.jpg",
+      "frameAlt": "A world map of nitrogen dioxide in the lower atmosphere, averaged over 2005. Land and ocean sit in pale blue-grey; the gas is drawn over them in yellow through red. The darkest red patches are eastern China, central and western Europe, and the eastern United States, with smaller marks over northern India, the Persian Gulf and the Highveld of South Africa. Most of the southern oceans, the Sahara, Siberia and both polar caps carry almost no colour.",
+      "bar": "./data/frames/cb_no2_global.png",
+      "barSource": "the 0–5 ×10¹⁵ molecules/cm² bar published with the global frames",
+      "source": "https://svs.gsfc.nasa.gov/4412/",
+      "sourceLabel": "SVS 4412 · Human Fingerprint on Global Air Quality",
+      "credit": "NASA's Scientific Visualization Studio / OMI on Aura",
+      "blurb": "A whole-planet air-quality still, listened to from the north pole to the south. Only the pixels that landed on the published ramp are data: the basemap under them falls silent rather than reading as clean air. The northern mid-latitudes are the loudest band on Earth, and that is industry.",
       "terms": {
-        "units": "\u00d710\u00b9\u2075 molecules/cm\u00b2",
-        "balanceAt": 5,
-        "balanceLabel": "the middle of the published 0\u201310 bar",
+        "units": "×10¹⁵ molecules/cm²",
+        "balanceAt": 2.5,
+        "balanceLabel": "the middle of the published 0–5 bar",
         "rising": "rising concentration",
         "falling": "falling concentration"
       },
       "scale": {
         "kind": "sequential",
         "lo": 0,
-        "hi": 10,
+        "hi": 5,
         "hue": "violet"
       },
       "inversionError": {
-        "mean": 0.006,
-        "max": 0.0481
+        "mean": 0.0066,
+        "max": 0.1557
       },
-      "globe": false
+      "globe": true
     }
   ]
 }
