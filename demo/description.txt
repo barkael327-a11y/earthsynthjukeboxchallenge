@@ -1,7 +1,7 @@
 EarthSynth — Hearing a Changing Planet
 The Fourier Collective · NASA Space Apps 2026 · The Earth Information Jukebox
 
-A 28-second demonstration of how EarthSynth recovers values from NASA visualization colors, encodes them as the balance between two fixed tones, checks the generated audio with an FFT, and lets listeners combine or isolate ocean, air and wind. Cinematic listening uses related NASA astronaut photographs, not the pictures being measured.
+A 27-second demonstration of how EarthSynth recovers values from NASA visualization colors, encodes them as the balance between two fixed tones, checks the generated audio with an FFT, and lets listeners combine or isolate ocean, air and wind. Cinematic listening uses related NASA astronaut photographs, not the pictures being measured.
 
 Measured NASA sources:
 Ocean / ECCO2 Perpetual Ocean: https://svs.gsfc.nasa.gov/3912/
