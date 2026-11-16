@@ -17,7 +17,7 @@ Run `python3 -m http.server 8080` in this directory and open `http://localhost:8
 
 ## Project demo
 
-[Watch the 27-second demonstration](demo/earthsynth-demo.mp4) · [Video description and assistance disclosure](demo/description.txt)
+[Watch the 27-second demonstration](https://youtu.be/vffUoJ5ERzo?si=Vyp5X1tRlaJKx8vY) · [Video description and assistance disclosure](demo/description.txt)
 
 The demo is 27.36 seconds, 1280×720, H.264 video with AAC stereo audio. The video description contains the separate AI/SI assistance disclosure. The project page must link to this review branch or a final published version containing the same files; a localhost address cannot serve remote judges.
 
