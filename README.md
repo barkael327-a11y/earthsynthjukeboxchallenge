@@ -15,6 +15,12 @@ Run `python3 -m http.server 8080` in this directory and open `http://localhost:8
 - **Cinematic mode** opens a listening room with NASA astronaut photographs. Those photographs illustrate each theme; they are not the source frames being measured. **About this scene** gives the photograph's credit and source. Exit or Escape returns to the instrument without restarting its clock.
 - **Sources, coverage & sound controls** contains the musical key, backdrop toggle and deliberate encoder-error test. The test should raise only that layer's sound difference.
 
+## Project demo
+
+[Watch the 28-second demonstration](demo/earthsynth-demo.mp4) · [Video description and assistance disclosure](demo/description.txt)
+
+The demo is 28.04 seconds, 1280×720, H.264 video with AAC stereo audio. The video description contains the separate AI/SI assistance disclosure. The project page must link to this review branch or a final published version containing the same files; a localhost address cannot serve remote judges.
+
 ## Three frozen NASA sources
 
 | Layer | Exact NASA page | What is measured | Coverage and limits |
