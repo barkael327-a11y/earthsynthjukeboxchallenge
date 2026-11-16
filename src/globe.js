@@ -258,12 +258,12 @@ export class GlobeRenderer {
     g2.setTransform(1, 0, 0, 1, 0, 0);
     g2.fillStyle = INK.surface;
     g2.fillRect(0, 0, this.pw, this.ph);
-    this._drawStars(g2);
-    this._drawAtmosphere(g2);
+    // Preview: no decorative star field.
+    // Preview: no decorative glow.
     // drawImage composites; putImageData would erase the stars and atmosphere.
     this.scratchCtx.putImageData(this.image, 0, 0);
     g2.drawImage(this.scratch, 0, 0);
-    this._drawRim(g2);
+    // Preview: no decorative rim.
   }
 
   /** @param {CanvasRenderingContext2D} g2 */

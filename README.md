@@ -1,86 +1,64 @@
 # EarthSynth
 
-Our synth allows you to turn a NASA picture into sound, and then measure the sound to get numbers back.
+The Fourier Collective · NASA Space Apps 2026 · The Earth Information Jukebox
 
-> The Earth Information Jukebox · NASA Space Apps 2026 · The Fourier Collective
+EarthSynth turns NASA-published visualization frames into a three-layer listening experience. Values are recovered through NASA's published color bars and encoded as the balance between two fixed tones. An independent browser FFT measures each carrier before the music and mix, recovering its value and reporting the difference.
 
-## What it does
+## Try the preview
 
-It reads an Earth Information Center (EIC) frame through the color bar that NASA has publicized beside it, it's usually found near the corner but you can download it separately. EarthSynth encodes each value as the balance between two fixed tones, then runs a fast fourier transform (FFT) on its own output to recover those values, and the gap between the two is shown on screen the whole time. For example, on sea surface temperature the gap is about 0.16 °C. The colour bar's own inversion error is 0.19 °C, so the picture is the limit, not the audio.
+Run `python3 -m http.server 8080` in this directory and open `http://localhost:8080`. No build step or runtime package installation is required. The public submission still needs an accessible hosted URL or a public repository with these run instructions; localhost cannot be used by remote judges.
 
-## Try it yourself
+- Start listening to ocean, air and wind together.
+- Use each switch to include/exclude a layer, or **Listen alone** to isolate one.
+- **Show** chooses the measured field on screen without changing the audible selection.
+- Mute silences the entire output; volume and mute do not move the upstream measurement.
+- **Cinematic mode** opens a listening room with NASA astronaut photographs. Those photographs illustrate each theme; they are not the source frames being measured. **About this scene** gives the photograph's credit and source. Exit or Escape returns to the instrument without restarting its clock.
+- **Sources, coverage & sound controls** contains the musical key, backdrop toggle and deliberate encoder-error test. The test should raise only that layer's sound difference.
 
-1. Press `L`. Five tones play, bottom of the range to top, each one named. This is the colour bar translated into sound.
-2. Press play and watch the big number in Live Validation.
-3. Drag the master volume. It doesn't move because the measurement is a ratio, so any gain both tones pass through cancels.
-4. Press `B`. That offsets what the carrier sounds and leaves what it reports alone. The residual jumps to 6.8 and turns orange.
+## Three frozen NASA sources
 
-Step 4 is the main point of our project confirming EarthSynth's scientific validity, because a number that always reads near zero could just be hardcoded.
+| Layer | Exact NASA page | What is measured | Coverage and limits |
+|---|---|---|---|
+| Ocean temperature | [Perpetual Ocean, SVS 3912](https://svs.gsfc.nasa.gov/3912/) | ECCO2 surface-temperature picture recovered through the published 0–32 °C bar | Archival still; canonical 2° grid; not current ocean conditions |
+| Global air pollution | [Science On a Sphere: Air Quality Model Runs, SVS 5518](https://svs.gsfc.nasa.gov/5518/) | GEOS-CF near-surface nitrogen oxides **NO + NO₂**, in ppbv; July 1, 2024 | Model estimate, not observed NO₂ column density or AQI. Published logarithmic color positions are decoded into physical values **before** averaging. |
+| Wind speed | [GEOS-FP Near-Surface Wind Speed, SVS 5148](https://svs.gsfc.nasa.gov/5148/) | Model wind-speed picture, 0–40 m/s; October 30, 2026 at 05:00 EDT | Whole-picture image coordinates. No geographic projection is asserted. Neutral/ambiguous pixels and annotations are excluded, so missing areas are not calm wind. |
 
-## How the mapping works
+The ocean source is listed directly in the challenge's Resources. [Challenge and Resources](https://www.spaceappschallenge.org/2026/challenges/the-earth-information-jukebox/?tab=resources). Exact source assets, hashes, color ramps, dates, masks, and inversion limitations appear in `data/*/meta.json`, `data/nox-global/PROVENANCE.md`, `data/wind-global/PROVENANCE.md`, and the reproducible `tools/build_global_layers.py`.
 
-| | |
-|---|---|
-| Carrier | two sines, 220 Hz and 880 Hz, fixed forever |
-| Measurement | tilt = slope × (value − balance), in dB |
-| At the balance point | both partials equal |
-| Total energy | constant, so loudness carries nothing |
-| Pitch | carries nothing, ever |
+These snapshots have different dates. Their common 90-step sweep is **relative top-to-bottom picture progress**, not simultaneous weather and not common geographic coordinates for wind. Values with different units are never combined into one scientific number.
 
-Pixels go to OKLab and match the nearest colour on the published bar. The match distance is the test: pixels landing far from the bar are basemap, coastline and labels, so they fall silent instead of reading as low values. Press `D` to see which ones got thrown out.
+## What sound means
 
-## What the music invents
+Each scientific layer retains 220 Hz and 880 Hz. Pitch never carries a measurement. The balance between the tones carries the departure from that layer's declared balance point. Ocean is panned left, air centered and wind right, after separate FFT taps. Isolation is provided because simultaneous layers can mask one another by ear; stereo placement does not make the final combined waveform independently decodable as three values.
 
-We implemented each of the following so it sounds pleasant:
+One shared musical backdrop supplies harmony, texture and reverb. It is artistic presentation and carries no independent scientific measurement. Its expression follows normalized source variation, but it does not combine physical units or claim a causal relationship. Steady carrier tones are trimmed after their analysers so the music can lead without changing the measured ratios.
 
-- Chords
-- Filter sweep
-- Reverb size
-- Delay feedback
-- Voicing
-- Noise bed
-
-None of it encodes anything, hiss is a coverage proxy and is labeled as one. Silence means no observation, never a value near zero.
+**Sound difference** compares the source value with the value recovered from that layer's generated audio. It is not NASA model uncertainty or a claim that frame inversion equals the underlying raw dataset. The display withholds residuals while paused, missing data, or during an unsettled FFT window. Missing measurements remain missing and their carriers fall silent.
 
 ## Accessibility
 
-This challenge exists because a picture leaves people out, so the sound isn't an extra here, it's the way in. Every number on screen is also a tone.
+All controls are native buttons, checkboxes, selects and ranges. Numeric values and coverage remain available as text; color is never the only channel. **Speak values** enables throttled screen-reader live announcements; it does not start a standalone text-to-speech voice. The cinematic dialog also receives those announcements when enabled. Keyboard focus is trapped by the native modal and restored on exit, and keyboard interaction keeps its controls visible. Reduced-motion preferences disable cinematic drift/fades and automatic globe rotation. This is implementation evidence, not a claim of completed assistive-technology certification; independent screen-reader testing is still recommended.
 
-`L` plays the scale before the data starts, so your ear has something to measure against. `V` announces position, value and live residual through an ARIA live region, so the instrument and its own error can be followed by ear. We throttle it on purpose, because a live region updated at the step rate fills the queue faster than a screen reader empties it. `R` holds the balance point as a reference tone to compare against. `S` strips the pad and the effects so only the two measured partials are left.
+## Attribution, rights and assistance
 
-Every frame carries a written description and the loader rejects one that doesn't. Both canvases are marked decorative, because everything in them is also printed, spoken and sounded. Nothing is conveyed by colour alone, the residual shows a ✓ or ✗ as well as changing colour. Every control is a real `<button>` or `<input>`, and Tab reaches all of them.
+NASA is the source of the scientific frames, color bars and cinematic photographs. NASA does not endorse EarthSynth. Credits and photo IDs for the three illustrative scenes are in `data/cinematic/manifest.json` and reachable from the app. No cinematic imagery was AI-generated; web copies were resized and JPEG-compressed.
 
-Keys: `Space` play, `←` `→` step, `Home` `End` ends, `L` scale, `V` speak, `B` break, `R` reference, `S` simplified, `M` music, `D` discarded pixels, `1`–`4` region.
+OpenAI **Codex**, including collaborating agents, assisted UI implementation, research, preprocessing code and tests during this revision. NASA source measurements were not generated by an AI model. Audio is deterministic/procedural Web Audio synthesis, not output from a generative audio model. Include this assistance in the official submission's SI/AI field and references; the team must add any other tools it used.
 
-## Run it on your own end
+Fonts: [Alegreya](https://github.com/google/fonts/tree/main/ofl/alegreya), [Source Sans 3](https://github.com/google/fonts/tree/main/ofl/sourcesans3), [IBM Plex Mono](https://github.com/google/fonts/tree/main/ofl/ibmplexmono), loaded through Google Fonts. Development dependencies are recorded in `package.json`/`package-lock.json`; preprocessing uses Python, NumPy, SciPy and Pillow. Design references consulted: [GetMe](https://getmetaste.com/) and [Linear's design discussion](https://linear.app/now/behind-the-latest-design-refresh).
 
-```bash
-python -m http.server 8080
+**Rights still requiring team confirmation:** original project licensing; upstream citation and permission for source headers identifying CosmicSynth-derived code; and a complete inventory of tools/materials used before this revision. This preview does not assign a license to teammates' work. Consult `SPACE_APPS_REVIEW.md` before submission.
+
+## Verification
+
+Focused checks cover source payload loading/probes/region means, physical contracts, FFT recovery, shared timeline, missingness, isolation/mute independence, the single backdrop, and chart tick spacing. Run:
+
+```sh
+node --test test/global-payloads.test.mjs test/contract.test.mjs test/measurement.test.mjs test/layer-session.test.mjs test/trend-layout.test.mjs
 ```
 
-No build step, no framework. `npm install && npm test` runs the 79 tests; jsdom is the only dependency.
-
-## Checking it yourself
-
-`validate.html` renders each contract through an OfflineAudioContext and writes a WAV. `tools/validate.py` analyses that WAV with numpy, sharing no code with the browser. Worst disagreement: 9.7 × 10⁻⁷ °C at 44.1 kHz, 8.9 × 10⁻⁷ at 48 kHz.
-
-## Data
-
-| Track | Source | Bar | Bar inverts to (mean / max) |
-|---|---|---|---|
-| Sea surface temperature | ECCO2 Perpetual Ocean — https://svs.gsfc.nasa.gov/3912/#media_group_349716 | 0–32 °C | 0.077 / 0.191 °C |
-| Tropospheric NO₂ | https://svs.gsfc.nasa.gov/4810/ | 0–10 ×10¹⁵ molec/cm² | 0.006 / 0.048 |
-
-Imagery from NASA's Scientific Visualization Studio. NASA doesn't endorse this.
-
-## Limits
-
-- Spectral tilt is harder to read by ear than pitch. That's the real cost of refusing to map data to pitch, and it's why the scale preview and the spoken values exist.
-- At the ends of a wide range one partial nearly vanishes, so the extremes can be mistaken for pitch movement. Nothing moved.
-- Two tracks. The tier rule cut more than it kept.
-- The audio chain is verified to 10⁻⁶. The frame inversion is only verified against itself — comparing it to an independent numeric product is the obvious next step and isn't done here.
-- The NO₂ frame is 320×180 feeding a 45×80 grid, which is coarse.
+The older page smoke tests describe the previous single-layer entry point and are not a certification of the new cinematic experience. `validate.html` remains the existing offline carrier/WAV tool. Do not reuse old README precision figures as measured results for the new three-layer UI.
 
 ## Team
 
-The Fourier Collective — Kael Barba, Pranay Kaveri
+The Fourier Collective — Kael Barba and Pranay Kaveri. Verify the accepted Space Apps platform roster and event separately.

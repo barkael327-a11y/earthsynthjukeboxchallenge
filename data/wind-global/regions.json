@@ -1,0 +1,31 @@
+{
+  "note": "Geographic area weighting only where projection is documented; image rows use uniform weights.",
+  "regions": [
+    {
+      "id": "frame",
+      "label": "Whole frame",
+      "slope": 0.75,
+      "requested_bounds": {
+        "lat": [
+          0,
+          1000000
+        ],
+        "lon": [
+          0,
+          1000000
+        ]
+      },
+      "bounds": {
+        "lat": [
+          0,
+          1000000
+        ],
+        "lon": [
+          0,
+          1000000
+        ]
+      },
+      "cells": 16200
+    }
+  ]
+}

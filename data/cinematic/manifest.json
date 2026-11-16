@@ -1,0 +1,53 @@
+[
+  {
+    "id": "ocean",
+    "title": "Little Bahama Bank",
+    "image": "./data/cinematic/ocean.jpg",
+    "credit": "NASA / ISS Crew Earth Observations / Johnson Space Center",
+    "sourceUrl": "https://science.nasa.gov/earth/earth-observatory/little-bahama-bank-89060/",
+    "sourceImageUrl": "https://assets.science.nasa.gov/content/dam/science/esd/eo/images/imagerecords/89000/89060/iss049e041356_lrg.jpg",
+    "photoId": "ISS049-E-41356",
+    "date": "2016-10-20",
+    "description": "Astronaut photograph of turquoise shallows, sandbanks, islands and a reef edge in the Bahamas. Illustrative landscape photography; it is not the frame, location or date from which the ocean-temperature sound is measured.",
+    "illustrative": true,
+    "width": 2200,
+    "height": 1464,
+    "processing": "NASA-published photograph resized proportionally and JPEG-compressed for the web; no generative edits.",
+    "usagePolicyUrl": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "rightsNote": "NASA astronaut photograph, credited by the source to ISS Crew Earth Observations and NASA Johnson Space Center. No third-party image copyright notice is present for this photo. Used for educational/informational presentation with source credit; no NASA endorsement implied."
+  },
+  {
+    "id": "air",
+    "title": "Smoke in the Stratosphere",
+    "image": "./data/cinematic/air.jpg",
+    "credit": "NASA / ISS Crew Earth Observations / Johnson Space Center",
+    "sourceUrl": "https://science.nasa.gov/earth/earth-observatory/smoke-in-the-stratosphere-148276/",
+    "sourceImageUrl": "https://assets.science.nasa.gov/content/dam/science/esd/eo/images/imagerecords/148000/148276/iss062e005419_lrg.jpg",
+    "photoId": "ISS062-E-5419",
+    "date": "2020-02-12",
+    "description": "An ISS photograph of atmospheric layers over the South Atlantic, with an elevated smoke layer and sunrise colors. Illustrative atmosphere photography; it does not show nitrogen-oxide concentration and is not the air-pollution frame being measured.",
+    "illustrative": true,
+    "width": 2200,
+    "height": 1467,
+    "processing": "NASA-published photograph resized proportionally and JPEG-compressed for the web; no generative edits.",
+    "usagePolicyUrl": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "rightsNote": "NASA astronaut photograph, credited by the source to ISS Crew Earth Observations and NASA Johnson Space Center. No third-party image copyright notice is present for this photo. Used for educational/informational presentation with source credit; no NASA endorsement implied."
+  },
+  {
+    "id": "wind",
+    "title": "South Pacific Swirl",
+    "image": "./data/cinematic/wind.jpg",
+    "credit": "NASA / ISS Crew Earth Observations / Johnson Space Center",
+    "sourceUrl": "https://science.nasa.gov/earth/earth-observatory/south-pacific-swirl-145595/",
+    "sourceImageUrl": "https://assets.science.nasa.gov/content/dam/science/esd/eo/images/imagerecords/145000/145595/iss059e011742_lrg.jpg",
+    "photoId": "ISS059-E-11742",
+    "date": "2019-04-04",
+    "description": "An astronaut photograph of a circular cloud formation above the South Pacific at sunrise. Illustrative weather photography; it is not a wind-speed measurement or the source frame used to generate the wind sound.",
+    "illustrative": true,
+    "width": 2200,
+    "height": 1467,
+    "processing": "NASA-published photograph resized proportionally and JPEG-compressed for the web; no generative edits.",
+    "usagePolicyUrl": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "rightsNote": "NASA astronaut photograph, credited by the source to ISS Crew Earth Observations and NASA Johnson Space Center. No third-party image copyright notice is present for this photo. Used for educational/informational presentation with source credit; no NASA endorsement implied."
+  }
+]

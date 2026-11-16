@@ -42,6 +42,8 @@ export class Mixer {
     this.master.connect(ctx.destination);
 
     this._mix = 0;
+    this._muted = false;
+    this._masterLevel = 0.9;
   }
 
   get mix() { return this._mix; }
@@ -78,11 +80,20 @@ export class Mixer {
     }, 400);
   }
 
+  /** Silence speaker output without changing the validator tap or chosen level.
+   * @param {boolean} muted
+   */
+  setMuted(muted) {
+    this._muted = muted;
+    this.setMaster(this._masterLevel);
+  }
+
   /** @param {number} v 0-1 */
   setMaster(v) {
+    this._masterLevel = Math.min(Math.max(v, 0), 1);
     const now = this.ctx.currentTime;
     this.master.gain.cancelScheduledValues(now);
     this.master.gain.setValueAtTime(this.master.gain.value, now);
-    this.master.gain.linearRampToValueAtTime(Math.min(Math.max(v, 0), 1), now + FADE);
+    this.master.gain.linearRampToValueAtTime(this._muted ? 0 : this._masterLevel, now + FADE);
   }
 }

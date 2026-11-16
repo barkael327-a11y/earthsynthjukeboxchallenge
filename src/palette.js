@@ -158,12 +158,12 @@ export function scaleGradient(g, scale, x0, y0, x1, y1) {
 
 /** Chart chrome, matched to the dark surface this page renders on. */
 export const INK = Object.freeze({
-  surface: '#131b29',
-  plane: '#0b111b',
-  primary: '#e8edf5',
-  secondary: '#9fb0c7',
-  muted: '#6d7f96',
-  grid: '#1e293a',
-  axis: '#2b3a52',
-  accent: '#4fd1c5',
+  surface: '#f2efdf',
+  plane: '#f2efdf',
+  primary: '#203d32',
+  secondary: '#425840',
+  muted: '#59664d',
+  grid: '#becab1',
+  axis: '#a8b79c',
+  accent: '#315841',
 });

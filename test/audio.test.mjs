@@ -488,3 +488,16 @@ test('the timeline stops at the end rather than running off it', async () => {
     assert.equal(timeline.index, series.count - 1);
   } finally { timeline.dispose(); }
 });
+test('mute silences both layers, preserves volume, and leaves measurement gains intact', () => {
+  const mixer = new Mixer(new FakeCtx(), {scientific: node(), musical: node()});
+  mixer.setMix(0.6);
+  mixer.setMaster(0.7);
+  mixer.setMuted(true);
+  assert.equal(mixer.master.gain.value, 0);
+  assert.equal(mixer.scientificGain.gain.value, 1);
+  assert.equal(mixer.musicalGain.gain.value, 0.6);
+  mixer.setMaster(0.4);
+  assert.equal(mixer.master.gain.value, 0, 'volume adjustment cannot bypass mute');
+  mixer.setMuted(false);
+  assert.equal(mixer.master.gain.value, 0.4, 'unmute restores the chosen level');
+});
