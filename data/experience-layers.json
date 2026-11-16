@@ -1,0 +1,20 @@
+[
+  {
+    "id":"ocean","label":"Ocean temperature","path":"./data/sst/","units":"°C",
+    "scale":{"kind":"sequential","lo":0,"hi":32,"hue":"ember"},
+    "source":"https://svs.gsfc.nasa.gov/3912/",
+    "sourceNote":"ECCO2 archival ocean visualization · source still, not live conditions"
+  },
+  {
+    "id":"air","label":"Global air pollution · NOx","path":"./data/nox-global/","units":"ppbv",
+    "palette":"./data/nox-global/palette.json",
+    "source":"https://svs.gsfc.nasa.gov/5518/",
+    "sourceNote":"1 July 2024 · modeled near-surface nitrogen oxides (NO + NO₂) · global"
+  },
+  {
+    "id":"wind","label":"Wind speed","path":"./data/wind-global/","units":"m/s",
+    "palette":"./data/wind-global/palette.json",
+    "source":"https://svs.gsfc.nasa.gov/5148/",
+    "sourceNote":"30 October 2026, 05:00 EDT · modeled near-surface wind · global picture, image coordinates"
+  }
+]

@@ -22,7 +22,23 @@
 
 import { ANOMALY_SCALE, INK } from './palette.js';
 
-const PAD = { top: 14, right: 16, bottom: 22, left: 40 };
+const PAD = { top: 30, right: 24, bottom: 25, left: 54 };
+
+/** Keep tick labels at least 28 CSS pixels apart, regardless of data range.
+ * @param {number} lo @param {number} hi @param {number} height
+ */
+export function valueTicks(lo, hi, height) {
+  const count = Math.min(5, Math.max(2, Math.floor(height / 28) + 1));
+  const raw = (hi - lo) / (count - 1);
+  const magnitude = 10 ** Math.floor(Math.log10(raw));
+  const step = ([1, 1.5, 2, 2.5, 3, 4, 5, 7.5, 10]
+    .find((v) => v * magnitude >= raw) ?? 10) * magnitude;
+  const ticks = [];
+  for (let i = Math.ceil(lo / step); i * step <= hi + step * 1e-9; i++) {
+    ticks.push(Number((i * step).toPrecision(12)));
+  }
+  return { ticks, step };
+}
 
 export class TrendChart {
   /**
@@ -54,6 +70,7 @@ export class TrendChart {
     const rect = this.canvas.getBoundingClientRect();
     this.w = Math.max(1, Math.round(rect.width));
     this.h = Math.max(1, Math.round(rect.height));
+    this.leftPad = PAD.left;
     this.canvas.width = this.w * dpr;
     this.canvas.height = this.h * dpr;
     this.g.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -66,10 +83,10 @@ export class TrendChart {
 
   get plot() {
     return {
-      x: PAD.left,
+      x: this.leftPad ?? PAD.left,
       y: PAD.top,
-      w: this.w - PAD.left - PAD.right,
-      h: this.h - PAD.top - PAD.bottom,
+      w: Math.max(1, this.w - (this.leftPad ?? PAD.left) - PAD.right),
+      h: Math.max(1, this.h - PAD.top - PAD.bottom),
     };
   }
 
@@ -115,17 +132,29 @@ export class TrendChart {
   draw(tIndex) {
     this._lastIndex = tIndex;
     const g = this.g;
-    const p = this.plot;
+    let p = this.plot;
     const s = this._scale();
+    const { ticks, step } = valueTicks(s.lo, s.hi, p.h);
+    const decimals = Math.min(4, Math.max(0, -Math.floor(Math.log10(step)))
+      + (Number.isInteger(step / 10 ** Math.floor(Math.log10(step))) ? 0 : 1));
+    const tickLabel = (v) => `${this.scale.kind === 'diverging' && v > 0 ? '+' : ''}${v.toFixed(decimals).replace('-', '−')}`;
+    g.font = '11px "Source Sans 3", sans-serif';
+    this.leftPad = Math.max(PAD.left, ...ticks.map(v => g.measureText(tickLabel(v)).width + 14));
+    p = this.plot;
 
     g.clearRect(0, 0, this.w, this.h);
-    g.font = '11px system-ui, -apple-system, "Segoe UI", sans-serif';
+    g.font = '11px "Source Sans 3", sans-serif';
 
     // -- recessive chrome --------------------------------------------------
-    const step = s.hi - s.lo > 3 ? 1 : 0.5;
+    g.fillStyle = INK.secondary;
+    g.textAlign = 'left';
+    g.textBaseline = 'top';
+    // Long units are already written in the chart subtitle; keep the axis clear.
+    const units = this.scale.units || '';
+    g.fillText(units.length <= 12 ? units : 'Value', p.x, 4);
     g.textAlign = 'right';
     g.textBaseline = 'middle';
-    for (let v = Math.ceil(s.lo / step) * step; v <= s.hi; v += step) {
+    for (const v of ticks) {
       const y = s.y(v);
       g.strokeStyle = Math.abs(v) < 1e-9 ? INK.axis : INK.grid;
       g.lineWidth = 1;
@@ -134,15 +163,18 @@ export class TrendChart {
       g.lineTo(p.x + p.w, Math.round(y) + 0.5);
       g.stroke();
       g.fillStyle = INK.muted;
-      g.fillText(v === 0 ? '0.0' : `${v > 0 ? '+' : '−'}${Math.abs(v).toFixed(1)}`, p.x - 8, y);
+      g.fillText(tickLabel(v), p.x - 8, y);
     }
 
     g.textAlign = 'center';
     g.textBaseline = 'top';
-    for (let year = 1880; year <= this.series.yearEnd; year += 30) {
-      const x = this._xOf(year - this.series.yearStart);
+    const xCount = Math.min(5, Math.max(2, Math.floor(p.w / 100) + 1));
+    for (let i = 0; i < xCount; i++) {
+      const index = Math.round(i * (this.series.count - 1) / (xCount - 1));
+      const x = this._xOf(index);
+      g.textAlign = i === 0 ? 'left' : i === xCount - 1 ? 'right' : 'center';
       g.fillStyle = INK.muted;
-      g.fillText(String(year), x, p.y + p.h + 6);
+      g.fillText(this.series.labelAt(index), x, p.y + p.h + 7);
     }
 
     // -- the line ----------------------------------------------------------
@@ -197,11 +229,11 @@ export class TrendChart {
 
       if (tooltip) {
         const text = `${this.series.labelAt(index)}  ${this._fmt(sample.value)}`;
-        g.font = '11px system-ui, -apple-system, "Segoe UI", sans-serif';
+        g.font = '11px "Source Sans 3", sans-serif';
         const tw = g.measureText(text).width + 14;
         const tx = Math.min(Math.max(x - tw / 2, p.x), p.x + p.w - tw);
-        g.fillStyle = 'rgba(11,17,27,0.92)';
-        g.strokeStyle = 'rgba(255,255,255,0.12)';
+        g.fillStyle = INK.surface;
+        g.strokeStyle = INK.grid;
         g.beginPath();
         g.roundRect(tx, p.y + 2, tw, 20, 4);
         g.fill(); g.stroke();

@@ -52,7 +52,8 @@ async function main() {
   let shown = null;
   let started = false;
   let scrubbing = false;
-  let musical = false;
+  let musical = true;
+  let muted = false;
   let maskOn = false;
   let progression = DEFAULT_PROGRESSION;
   // The globe is the thing people look at first, so it is what the page opens on.
@@ -87,7 +88,7 @@ async function main() {
       b.type = 'button';
       b.dataset.track = t.id;
       b.setAttribute('aria-pressed', 'false');
-      b.textContent = t.label;
+      b.textContent = t.id === "sst" ? "Ocean temperature" : t.id === "no2" ? "Air · Northeastern U.S." : t.label;
       b.addEventListener('click', () => selectTrack(t.id));
       trackRow.appendChild(b);
     }
@@ -130,7 +131,7 @@ async function main() {
       b.dataset.track = t.id;
       b.setAttribute('aria-selected', 'false');
       b.innerHTML =
-        `<span>${t.short ?? t.label}</span>` +
+        `<span>${t.id === "sst" ? "Ocean temperature" : t.id === "no2" ? "Air · Northeastern U.S." : t.label}</span>` +
         `<small class="${t.tier}">${tierLabel(t)}</small>`;
       b.addEventListener('click', () => selectTrack(t.id));
       list.appendChild(b);
@@ -187,6 +188,8 @@ async function main() {
     const carrier = new CarrierLayer(ctx, { series, region });
     const pad = new AmbientPad(ctx, { series, region, yearSeconds: 1 / RATE });
     const mixer = new Mixer(ctx, { scientific: carrier.output, musical: pad.output });
+    mixer.setMuted(muted);
+    mixer.setMaster(Number($('#master').value) / 100);
     const validator = new LiveValidator(carrier.analyser, () => live.region.contract);
     const timeline = new Timeline(ctx, { count: series.count, rate: RATE });
 
@@ -386,7 +389,7 @@ async function main() {
       const on = e.currentTarget.getAttribute('aria-pressed') !== 'true';
       e.currentTarget.setAttribute('aria-pressed', String(on));
       live.carrier.setSimplified(on);
-      if (on) setMusic(false);
+      setMusic(!on);
       readout.say(on
         ? 'Simplified mode on. Carrier only, louder: no pad, no reverb, no delays.'
         : 'Simplified mode off.');
@@ -394,6 +397,14 @@ async function main() {
 
     $('#maskToggle').addEventListener('click', (e) =>
       setMask(e.currentTarget.getAttribute('aria-pressed') !== 'true'));
+
+    $('#mute').addEventListener('click', () => {
+      muted = !muted;
+      live?.mixer.setMuted(muted);
+      $('#mute').setAttribute('aria-pressed', String(muted));
+      $('#mute').textContent = muted ? 'Unmute sound' : 'Mute sound';
+      readout.say(muted ? 'Sound muted. Playback and measurement continue.' : 'Sound on. Previous volume restored.');
+    });
 
     $('#master').addEventListener('input', (e) =>
       live?.mixer.setMaster(Number(e.currentTarget.value) / 100));
