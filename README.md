@@ -4,6 +4,15 @@ The Fourier Collective · NASA Space Apps 2026 · The Earth Information Jukebox
 
 EarthSynth turns NASA-published visualization frames into a three-layer listening experience. Values are recovered through NASA's published color bars and encoded as the balance between two fixed tones. An independent browser FFT measures each carrier before the music and mix, recovering its value and reporting the difference.
 
+## Try it live yourself!
+Live demo (GitHub Pages): https://barkael327-a11y.github.io/earthsynthjukeboxchallenge/
+Source: https://github.com/barkael327-a11y/earthsynthjukeboxchallenge
+ 
+Nothing to install. The page is static files served directly from the repository's main branch by GitHub Pages, so it opens in any current desktop browser and runs entirely client-side. Browsers only start audio after a click, so press Play first, then use headphones or speakers.
+ 
+To run it locally instead, clone the repository and serve its root folder with any static server, for example python3 -m http.server 8000, then open http://localhost:8000/. Opening index.html directly from the file system will not work, because the page loads its data files with fetch. A localhost address is for development only; the Pages link above is the address for review.
+
+
 ## Try the preview
 
 Run `python3 -m http.server 8080` in this directory and open `http://localhost:8080`. No build step or runtime package installation is required. The public submission still needs an accessible hosted URL or a public repository with these run instructions; localhost cannot be used by remote judges.
