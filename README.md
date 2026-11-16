@@ -63,7 +63,7 @@ Focused checks cover source payload loading/probes/region means, physical contra
 node --test test/global-payloads.test.mjs test/contract.test.mjs test/measurement.test.mjs test/layer-session.test.mjs test/trend-layout.test.mjs
 ```
 
-The older page smoke tests describe the previous single-layer entry point and are not a certification of the new cinematic experience. `validate.html` remains the existing offline carrier/WAV tool. Do not reuse old README precision figures as measured results for the new three-layer UI.
+The page harness now loads the real combined controller and verifies shell assets, isolation, mute, seeking and cinematic wiring. The full suite (`npm test`) passed all 66 tests in the release checkout. `validate.html` remains the existing offline carrier/WAV tool. Do not reuse old README precision figures as measured results for the new three-layer UI.
 
 ## Team
 
